@@ -1,4 +1,5 @@
 #include "Soldier.h"
+#include "Supporter.h"
 
 Soldier::Soldier() : Player()
 {
@@ -17,23 +18,49 @@ Soldier::Soldier(int team, int id, int type) : Player(team, id)
 	needAmmo = false;
 }
 
-void Soldier::CalculateTask()
+void Soldier::CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies,
+	bool visibillity_map[MSZ][MSZ], Supporter* sp)
 {
+	if (CheckEnemyInSameRoom(enemies))
+		BattleMode(maze, security_map, rooms, enemies, visibillity_map);	// Choosing battle task
+	else if (hp < 20)
+	{
+		if (needMedkit == false)
+			task = CALL_FOR_MEDKIT;
+		else if (sp->getSoldierProvided() == id)
+			task = MOVE_TO_SUPPORTER;
+		else
+			task = HIDE;
+	}
+	else if ((num_bullets + num_grenades) < 10)
+	{
+		if (needAmmo == false)
+			task = CALL_FOR_AMMO;
+		else if (sp->getSoldierProvided() == id)
+			task = MOVE_TO_SUPPORTER;
+		else
+			task = HIDE;
+	}
+	else if (soldierType == AGGRESSIVE)	// Todo: Make sure it becomes to aggressive when others dead
+		task = SEARCH_ENEMIES;
+	else
+		task = FOLLOW_AGGRESSIVE_TEAMMATE;
 }
 
 void Soldier::CallForMedkit()
 {
+	cout << "Soldier " << this->id << " from team " << this->team << " has called for medkit";
 	needMedkit = true;
 }
 
 void Soldier::CallForAmmo()
 {
+	cout << "Soldier " << this->id << " from team " << this->team << " has called for ammo";
 	needAmmo = true;
 }
 
 // TODO: Try A* to consider enemy distance
-// TODO: May should be private
-void Soldier::RunAway(int maze[MSZ][MSZ], Room rooms[NUM_ROOMS], double security_map[MSZ][MSZ])
+void Soldier::RunAway(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], double security_map[MSZ][MSZ])
 {
 	Cell* next;
 	int trow, tcol;
@@ -47,41 +74,23 @@ void Soldier::RunAway(int maze[MSZ][MSZ], Room rooms[NUM_ROOMS], double security
 	col = next->getCol();
 }
 
-void Soldier::MoveOnTowardsSupporter(int maze[MSZ][MSZ], vector<Supporter>& supporters, double security_map[MSZ][MSZ])
+void Soldier::MoveOnTowardsSupporter(int maze[MSZ][MSZ], Supporter* sp, double security_map[MSZ][MSZ])
 {
 	Cell* next;
-	int trow, tcol;
-	bool noSupporterAvailable = true;
+	int trow = sp->getRow(), tcol = sp->getCol();
 
-	// Determine target by supporter who's in delivery to this soldier
-	for (auto& sp : supporters)
-		if (sp.getSoldierProvided() == this->id)
-		{
-			noSupporterAvailable = false;
-			trow = sp.getRow();
-			tcol = sp.getCol();
-			break;
-		}
+	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 
-	// If the supporter changed his mission -> In the meantime the soldier will hide
-	if (noSupporterAvailable)
-		Hide(maze, security_map);
-	else
-	{
-		next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
+	// Making sure that the supporter is the one that handling the recovering
+	if (team == RED && maze[next->getRow()][next->getCol()] == RED_SUPPORTER ||
+		team == BLUE && maze[next->getRow()][next->getCol()] == BLUE_SUPPORTER)
+		return;
 
-		// Making sure that the supporter is the one that handling the recovering
-		if (team == RED && maze[next->getRow()][next->getCol()] == RED_SUPPORTER ||
-			team == BLUE && maze[next->getRow()][next->getCol()] == BLUE_SUPPORTER)
-			return;
-
-		// Update new player's location
-		row = next->getRow();
-		col = next->getCol();
-	}
+	// Update new player's location
+	row = next->getRow();
+	col = next->getCol();
 }
 
-// TODO: Not when this player in the room with an enemy
 void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier>& soldiers, double security_map[MSZ][MSZ])
 {
 	Cell* next;
@@ -90,7 +99,7 @@ void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier>& sold
 
 	// Determine target by closest aggressive teammate
 	for (auto& sd : soldiers)
-		if (sd.getSoldierType() == AGGRESSIVE)
+		if (sd.getId() != this->id && sd.getSoldierType() == AGGRESSIVE)
 			UpdateMinDistCoordinates(row, col, sd.getRow(), sd.getCol(), &trow, &tcol, &minDist);
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
@@ -100,7 +109,7 @@ void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier>& sold
 	col = next->getCol();
 }
 
-void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room rooms[NUM_ROOMS], vector<Player>& enemies, double security_map[MSZ][MSZ])
+void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies, double security_map[MSZ][MSZ])
 {
 	Cell* next;
 	int trow, tcol;
@@ -126,11 +135,10 @@ void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room rooms[NUM_ROOMS], vector
 	col = next->getCol();
 }
 
-void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room rooms[NUM_ROOMS], vector<Player>& enemies,
+void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies,
 	bool visibillity_map[MSZ][MSZ])
 {
 	priority_queue<double, vector<double>, greater<double>> task_q;
-	int trow, tcol;
 	double hp_per = hp / MAX_HP;
 	double ammo_per = (num_bullets + num_grenades) / (MAX_BULLETS + MAX_GRENADES);
 	double grenade_per = num_grenades / MAX_GRENADES;
@@ -142,10 +150,10 @@ void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room
 	if (ammo_per < 0.35)
 		CallForAmmo();
 
-	FindEnemyToFight(&trow, &tcol, enemies, visibillity_map, &is_visible);
+	FindEnemyToFight(&enemy_row, &enemy_col, enemies, visibillity_map, &is_visible);
 
-	dist_per = CalculateEuclideanDistance(row, col, trow, tcol) /		
-		CalculateEuclideanDistance(rooms[roomNum].getH(), rooms[roomNum].getW(), 0, 0);
+	dist_per = CalculateEuclideanDistance(row, col, enemy_row, enemy_col) /
+		CalculateEuclideanDistance(rooms[roomNum]->getH(), rooms[roomNum]->getW(), 0, 0);
 
 	if (this->soldierType == AGGRESSIVE)
 	{
@@ -164,6 +172,8 @@ void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room
 		grenade_per *= CAUTIOUS_GRENADES_W;
 	}
 
+	// Todo: Try combinations
+	
 	// 0.2 0.5 0.3 1
 	// w = { 0.6 0.66 0.7 } --> 0.12 0.33 0.198
 	// Closer = 3.737	Attack = 4.137	 Hide = 4.848
@@ -187,45 +197,44 @@ void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room
 		action = task_q.top();
 
 	if (action == getCloser_rate)
-		GetCloserToEnemy(maze, security_map, trow, tcol);
+		task = GET_CLOSER_TO_ENEMY;
 	else if (action == attack_rate)
-		AttackEnemy(trow, tcol, visibillity_map[trow][tcol]);
+		AttackEnemy(visibillity_map[enemy_row][enemy_col]);	// Choose the best way to attack
 	else
 		if (hp <= 10)
-			RunAway(maze, rooms, security_map);
+			task = RUN_AWAY;
 		else
-			Hide(maze, security_map);
+			task = HIDE;
 }
 
-void Soldier::GetCloserToEnemy(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], int trow, int tcol)
+void Soldier::GetCloserToEnemy(int maze[MSZ][MSZ], double security_map[MSZ][MSZ])
 {
-	Cell* next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
+	Cell* next = DistanceFromStartAStar(this->row, this->col, enemy_row, enemy_col, maze, security_map);
 
 	// Update new player's location
 	row = next->getRow();
 	col = next->getCol();
 }
 
-// TODO: fix
-void Soldier::AttackEnemy(int trow, int tcol, bool isVisible)
+void Soldier::AttackEnemy(bool isVisible)
 {
-	isVisible ? ShootBullet(trow, tcol) : ThrowGrenade(trow, tcol);
+	isVisible ? task = SHOOT_BULLET : task = THROW_GRENADE;
 }
 
-Bullet* Soldier::ShootBullet(int trow, int tcol)
+Bullet* Soldier::ShootBullet()
 {
-	Bullet* pb = new Bullet(col, row, atan2(trow, tcol));
+	Bullet* pb = new Bullet(col, row, atan2(enemy_row, enemy_col));
 	pb->setIsFired(true);
 	num_bullets--;
 
 	return pb;
 }
 
-Grenade* Soldier::ThrowGrenade(int trow, int tcol)
+Grenade* Soldier::ThrowGrenade()
 {
 	// TODO: Grenade animation maybe should be at main.cpp (idle func)
 	
-	Grenade* pg = new Grenade((col, row, atan2(trow, tcol));
+	Grenade* pg = new Grenade(col, row, atan2(enemy_row, enemy_col));
 	pg->setIsExploded(true);
 	num_grenades--;
 
@@ -270,7 +279,7 @@ void Soldier::FindEnemyToFight(int* trow, int* tcol, vector<Player>& enemies, bo
 		}
 }
 
-void Soldier::FindClosestRoom(int* trow, int* tcol, Room rooms[NUM_ROOMS])
+void Soldier::FindClosestRoom(int* trow, int* tcol, Room* rooms[NUM_ROOMS])
 {
 	double minDist = HUGE_VAL;
 
@@ -278,6 +287,6 @@ void Soldier::FindClosestRoom(int* trow, int* tcol, Room rooms[NUM_ROOMS])
 	for (int i = 0; i < NUM_ROOMS; i++)
 		// Check for if the player is NOT in room[i]
 		if (i != this->roomNum)
-			UpdateMinDistCoordinates(row, col, rooms[i].getCenterRow(), rooms[i].getCenterCol(),
+			UpdateMinDistCoordinates(row, col, rooms[i]->getCenterRow(), rooms[i]->getCenterCol(),
 				trow, tcol, &minDist);
 }

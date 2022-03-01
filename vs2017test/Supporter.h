@@ -1,5 +1,4 @@
 #pragma once
-#include "Player.h"
 #include "Soldier.h"
 
 const int MAX_AMMO = 3;
@@ -38,9 +37,10 @@ public:
     void CalculateTask(vector<Player>& enemies, vector<Soldier>& teammates);
     void FollowTeammates(int maze[MSZ][MSZ], vector<Soldier>& soldiers, double security_map[MSZ][MSZ]);
     void UseMedkit();
-    void FillMedkitStock(int maze[MSZ][MSZ], Room med_rooms[NUM_MED_ROOMS], double security_map[MSZ][MSZ]);
-    void FillAmmoStock(int maze[MSZ][MSZ], Room ammo_rooms[NUM_AMMO_ROOMS], double security_map[MSZ][MSZ]);
+    void FillMedkitStock(int maze[MSZ][MSZ], Room* med_rooms[NUM_MED_ROOMS], double security_map[MSZ][MSZ]);
+    void FillAmmoStock(int maze[MSZ][MSZ], Room* ammo_rooms[NUM_AMMO_ROOMS], double security_map[MSZ][MSZ]);
     void ProvideAmmoToSoldier(int maze[MSZ][MSZ], Soldier* sd, double security_map[MSZ][MSZ]);
     void ProvideMedkitToSoldier(int maze[MSZ][MSZ], Soldier* sd, double security_map[MSZ][MSZ]);
     void BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], vector<Soldier>& teammates);
 };
+

@@ -41,6 +41,13 @@ const int NUM_STOCK = 3;
 const int RED = 0;
 const int BLUE = 1;
 
+// Players Settings
+
+const int NUM_PLAYERS = 3;
+const int NUM_SOLDIERS = 2;
+const int NUM_SUPPORTERS = 1;
+const int NUM_AGGRESSIVE_SOLDIERS = 1;
+
 double CalculateEuclideanDistance(int y, int x, int yy, int xx)
 {
 	return sqrt(pow(y - yy, 2) + pow(x - xx, 2));

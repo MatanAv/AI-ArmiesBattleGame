@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Definitions.h"
 
 const double MAX_DAMAGE = 100.0;	// Damage is determined by MAX_DAMAGE / distance

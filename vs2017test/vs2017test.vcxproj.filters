@@ -89,9 +89,6 @@
     <ClInclude Include="CompareCellsBySecurity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PlayersDefinitions.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TaskNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>

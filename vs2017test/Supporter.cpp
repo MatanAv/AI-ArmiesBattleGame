@@ -16,6 +16,16 @@ Supporter::Supporter(int team, int id) : Player(team, id)
 	itemProvided = -1;
 }
 
+Soldier* Supporter::GetProvidedSoldier(vector<Soldier>& teammates)
+{
+	for (auto& sd : teammates)
+		if (sd.getId() == soldierToProvide)
+			return &sd;
+
+	return nullptr;
+}
+
+// Todo: Try it
 //void Supporter::CalculateTask(vector<Player>& enemies)
 //{
 //	TaskLeaf* leaf_GoAfterTeam = new TaskLeaf("Follow teammates", FOLLOW_TEAMMATES);
@@ -68,7 +78,7 @@ void Supporter::UseMedkit()
 	cout << "Player " << this->id << " from team " << this->team << " has used med-kit\n";
 }
 
-void Supporter::FillMedkitStock(int maze[MSZ][MSZ], Room med_rooms[NUM_MED_ROOMS], double security_map[MSZ][MSZ])
+void Supporter::FillMedkitStock(int maze[MSZ][MSZ], Room* med_rooms[NUM_MED_ROOMS], double security_map[MSZ][MSZ])
 {
 	Cell* next;
 	int trow, tcol;
@@ -76,8 +86,8 @@ void Supporter::FillMedkitStock(int maze[MSZ][MSZ], Room med_rooms[NUM_MED_ROOMS
 
 	// Determine target by min distance from medkit
 	for (int i = 0; i < NUM_MED_ROOMS; i++)
-		if (maze[med_rooms[i].getCenterRow()][med_rooms[i].getCenterCol()] == MED)
-			UpdateMinDistCoordinates(row, col, med_rooms[i].getCenterRow(), med_rooms[i].getCenterCol(),
+		if (maze[med_rooms[i]->getCenterRow()][med_rooms[i]->getCenterCol()] == MED)
+			UpdateMinDistCoordinates(row, col, med_rooms[i]->getCenterRow(), med_rooms[i]->getCenterCol(),
 				&trow, &tcol, &minDist);
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
@@ -93,7 +103,7 @@ void Supporter::FillMedkitStock(int maze[MSZ][MSZ], Room med_rooms[NUM_MED_ROOMS
 	}
 }
 
-void Supporter::FillAmmoStock(int maze[MSZ][MSZ], Room ammo_rooms[NUM_AMMO_ROOMS], double security_map[MSZ][MSZ])
+void Supporter::FillAmmoStock(int maze[MSZ][MSZ], Room* ammo_rooms[NUM_AMMO_ROOMS], double security_map[MSZ][MSZ])
 {
 	Cell* next;
 	int trow, tcol;
@@ -101,8 +111,8 @@ void Supporter::FillAmmoStock(int maze[MSZ][MSZ], Room ammo_rooms[NUM_AMMO_ROOMS
 
 	// Determine target by min distance from medkit
 	for (int i = 0; i < NUM_AMMO_ROOMS; i++)
-		if (maze[ammo_rooms[i].getCenterRow()][ammo_rooms[i].getCenterCol()] == AMMO)
-			UpdateMinDistCoordinates(row, col, ammo_rooms[i].getCenterRow(), ammo_rooms[i].getCenterCol(),
+		if (maze[ammo_rooms[i]->getCenterRow()][ammo_rooms[i]->getCenterCol()] == AMMO)
+			UpdateMinDistCoordinates(row, col, ammo_rooms[i]->getCenterRow(), ammo_rooms[i]->getCenterCol(),
 				&trow, &tcol, &minDist);
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
@@ -210,16 +220,6 @@ bool Supporter::CheckIfSoldierNeedAmmo(vector<Soldier>& teammates)
 	return true;
 }
 
-Soldier* Supporter::GetProvidedSoldier(vector<Soldier>& teammates)
-{
-	for (auto& sd : teammates)
-		if (sd.getId() == soldierToProvide)
-			return &sd;
-
-	return nullptr;
-}
-
-// Todo: Change to players instead of soldiers
 void Supporter::FollowTeammates(int maze[MSZ][MSZ], vector<Soldier>& soldiers, double security_map[MSZ][MSZ])
 {
 	Cell* next;

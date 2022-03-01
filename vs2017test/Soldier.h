@@ -1,6 +1,5 @@
 #pragma once
 #include "Player.h"
-#include "Supporter.h"
 #include "Bullet.h"
 #include "Grenade.h"
 
@@ -30,8 +29,14 @@ const int MOVE_TO_SUPPORTER = 42;
 const int FOLLOW_AGGRESSIVE_TEAMMATE = 43;
 const int SEARCH_ENEMIES = 44;
 const int SOLDIER_BATTLE_MODE = 45;
+const int GET_CLOSER_TO_ENEMY = 46;
+const int RUN_AWAY = 47;
+const int SHOOT_BULLET = 48;
+const int THROW_GRENADE = 49;
 
 // Todo: may need to be more internal tasks
+
+class Supporter;
 
 class Soldier :
     public Player
@@ -40,14 +45,14 @@ private:
     int num_bullets;
     int num_grenades;
     int soldierType;
+    int enemy_row, enemy_col;
     bool needMedkit;
     bool needAmmo;
     void FindClosestEnemyInMap(int* trow, int* tcol, vector<Player>& enemies);
     void FindEnemyToFight(int* trow, int* tcol, vector<Player>& enemies, bool visibillity_map[MSZ][MSZ],
         double* isVisible);
-    void FindClosestRoom(int* trow, int* tcol, Room rooms[NUM_ROOMS]);
-    void GetCloserToEnemy(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], int trow, int tcol);
-    void AttackEnemy(int trow, int tcol, bool isVisible);
+    void FindClosestRoom(int* trow, int* tcol, Room* rooms[NUM_ROOMS]);
+    void AttackEnemy(bool isVisible);
 public:
     Soldier();
     ~Soldier();
@@ -55,21 +60,24 @@ public:
     int getBullets() { return num_bullets; }
     int getGrenades() { return num_grenades; }
     int getSoldierType() { return soldierType; }
-    void setBullets(int bullets) { num_bullets = bullets; }
+    int getEnemyRow() { return enemy_row; }
+    int getEnemyCol() { return enemy_col; }
+    bool getNeedMedkit() { return needMedkit; }
+    bool getNeedAmmo() { return needAmmo; } void setBullets(int bullets) { num_bullets = bullets; }
     void setGrenades(int grenades) { num_grenades = grenades; }
     void setNeedMedkit(bool v) { needMedkit = v; }
     void setNeedAmmo(bool v) { needAmmo = v; }
-    void CalculateTask();
+    void CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies,
+        bool visibillity_map[MSZ][MSZ], Supporter* sp);
     void CallForMedkit();
     void CallForAmmo();
-    void RunAway(int maze[MSZ][MSZ], Room rooms[NUM_ROOMS], double security_map[MSZ][MSZ]);
-    void MoveOnTowardsSupporter(int maze[MSZ][MSZ], vector <Supporter>& supporters, double security_map[MSZ][MSZ]); // Todo: change to "Player"
+    void RunAway(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], double security_map[MSZ][MSZ]);
+    void MoveOnTowardsSupporter(int maze[MSZ][MSZ], Supporter* sp, double security_map[MSZ][MSZ]);
     void FollowAggressiveTeammate(int maze[MSZ][MSZ], vector <Soldier>& soldiers, double security_map[MSZ][MSZ]);
-    void SearchTheEnemies(int maze[MSZ][MSZ], Room rooms[NUM_ROOMS], vector <Player>& enemies, double security_map[MSZ][MSZ]);
-    void BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room rooms[NUM_ROOMS], vector<Player>& enemies,
+    void SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector <Player>& enemies, double security_map[MSZ][MSZ]);
+    void BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies,
         bool visibillity_map[MSZ][MSZ]);
-    bool getNeedMedkit() { return needMedkit; }
-    bool getNeedAmmo() { return needAmmo; }
-    Bullet* ShootBullet(int trow, int tcol);
-    Grenade* ThrowGrenade(int trow, int tcol);
+    void GetCloserToEnemy(int maze[MSZ][MSZ], double security_map[MSZ][MSZ]);
+    Bullet* ShootBullet();
+    Grenade* ThrowGrenade();
 };

@@ -141,7 +141,6 @@
     <ClInclude Include="glut.h" />
     <ClInclude Include="Grenade.h" />
     <ClInclude Include="Player.h" />
-    <ClInclude Include="PlayersDefinitions.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="Soldier.h" />
     <ClInclude Include="Supporter.h" />

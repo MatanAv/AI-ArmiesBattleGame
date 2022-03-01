@@ -3,15 +3,14 @@
 #include <vector>
 #include <queue>
 #include <iostream>
-#include "Cell.h"
-#include "Room.h"
-#include "CompareCells.h"
-#include "Bullet.h"
-#include "Grenade.h"
+//#include "Cell.h"
+//#include "Room.h"
+//#include "CompareCells.h"
+//#include "Bullet.h"
+//#include "Grenade.h"
 #include "Player.h"
 #include "Soldier.h"
 #include "Supporter.h"
-#include "PlayersDefinitions.h"
 
 using namespace std;
 
@@ -529,7 +528,18 @@ void display()
 
 
 
+bool CheckIfStockIsEmpty()
+{
+	for (int i = 0; i < NUM_MED_ROOMS; i++)
+		if (maze[med_rooms[i]->getCenterRow()][med_rooms[i]->getCenterCol()] == MED)
+			return false;
 
+	for (int i = 0; i < NUM_AMMO_ROOMS; i++)
+		if (maze[ammo_rooms[i]->getCenterRow()][ammo_rooms[i]->getCenterCol()] == AMMO)
+			return false;
+
+	return true;
+}
 
 void UpdatePlayersRoomLocation()
 {
@@ -565,51 +575,116 @@ void UpdatePlayersRoomLocation()
 		}
 }
 
-void MakeSupporterStep(Supporter sp, vector <Soldier>& team_solds)
+void MakeSupporterStep(Supporter* sp, vector <Soldier>& teammates, vector<Player> enemies)
 {
-	int prev_row = sp.getRow(), prev_col = sp.getCol();
+	int prev_row = sp->getRow(), prev_col = sp->getCol();
 
-	// TODO: This part, do-while task is call for something (so he will call and move the same time)
-		// TODO: Choose Task
+	sp->CalculateTask(enemies, teammates);
 
-		// TODO: Execute Task
-	switch (sp.getTask())
+	if (sp->getTask() == SUPPORTER_BATTLE_MODE)
+		sp->BattleMode(maze, security_map, teammates);	// Choosing battle-task
+
+	// Perform supporter task
+	switch (sp->getTask())
 	{
-
+		case FILL_MEDKIT_STOCK:
+			sp->FillMedkitStock(maze, med_rooms, security_map);
+			break;
+		case FILL_AMMO_STOCK:
+			sp->FillAmmoStock(maze, med_rooms, security_map);
+			break;
+		case PROVIDE_MED_TO_URGENT:
+		{
+			for (auto& s : teammates)
+				if (sp->getSoldierProvided() == s.getId())
+				{
+					sp->ProvideMedkitToSoldier(maze, &s, security_map);
+					break;
+				}
+			break;
+		}
+		case PROVIDE_AMMO_TO_URGENT:
+		{
+			for (auto& s : teammates)
+				if (sp->getSoldierProvided() == s.getId())
+				{
+					sp->ProvideAmmoToSoldier(maze, &s, security_map);
+					break;
+				}
+			break;
+		}
+		case USE_MEDKIT:
+			sp->UseMedkit();
+			break;
+		case FOLLOW_TEAMMATES:
+			sp->FollowTeammates(maze, teammates, security_map);
+			break;
+		case HIDE:
+			sp->Hide(maze, security_map);
+			break;
 	}
 	
-	if (sp.getRow() != prev_row && sp.getCol() != prev_col)
+	// Update map
+	if (sp->getRow() != prev_row && sp->getCol() != prev_col)
 	{
-		if (sp.getTeamColor() == RED)
-			maze[sp.getRow()][sp.getCol()] = RED_SUPPORTER;
+		if (sp->getTeamColor() == RED)
+			maze[sp->getRow()][sp->getCol()] = RED_SUPPORTER;
 		else
-			maze[sp.getRow()][sp.getCol()] = BLUE_SUPPORTER;
+			maze[sp->getRow()][sp->getCol()] = BLUE_SUPPORTER;
 
 		maze[prev_row][prev_col] = SPACE;
 	}
 }
 
-void MakeSoldierStep(Soldier sd, vector <Supporter>& team_supp, vector <Player>& enemies)
+void MakeSoldierStep(Soldier* sd, vector <Soldier>& team_soldiers, Supporter* team_supporter, vector <Player>& enemies)
 {
-	int prev_row = sd.getRow(), prev_col = sd.getCol();
+	int prev_row = sd->getRow(), prev_col = sd->getCol();
 
+	sd->CalculateTask(maze, security_map, rooms, enemies, visibillity_map, team_supporter);
 
-	// TODO: This part, do-while task is call for something (so he will call and move the same time)
-	// TODO: Except "MoveTowardsSupporter"
-		// TODO: Choose Task
+	if (sd->getTask() == SOLDIER_BATTLE_MODE)
+		sd->BattleMode(maze, security_map, rooms, enemies, visibillity_map);	// Choosing battle-task
 
-		// TODO: Execute Task
-	switch (sd.getTask())
+	switch (sd->getTask())
 	{
-
+		case CALL_FOR_MEDKIT:
+			sd->CallForMedkit();
+			break;
+		case CALL_FOR_AMMO:
+			sd->CallForAmmo();
+			break;
+		case MOVE_TO_SUPPORTER:
+			sd->MoveOnTowardsSupporter(maze, team_supporter, security_map);
+			break;
+		case FOLLOW_AGGRESSIVE_TEAMMATE:
+			sd->FollowAggressiveTeammate(maze, team_soldiers, security_map);
+			break;
+		case SEARCH_ENEMIES:
+			sd->SearchTheEnemies(maze, rooms, enemies, security_map);
+			break;
+		case GET_CLOSER_TO_ENEMY:
+			sd->GetCloserToEnemy(maze, security_map);
+			break;
+		case RUN_AWAY:
+			sd->RunAway(maze, rooms, security_map);
+			break;
+		case SHOOT_BULLET:
+			sd->ShootBullet();	// Todo: handle returned value
+			break;
+		case THROW_GRENADE:
+			sd->ThrowGrenade();	// Todo: handle returned value
+			break;
+		case HIDE:
+			sd->Hide(maze, security_map);
+			break;
 	}
 
-	if (sd.getRow() != prev_row && sd.getCol() != prev_col)
+	if (sd->getRow() != prev_row && sd->getCol() != prev_col)
 	{
-		if (sd.getTeamColor() == RED)
-			maze[sd.getRow()][sd.getCol()] = RED_SOLDIER;
+		if (sd->getTeamColor() == RED)
+			maze[sd->getRow()][sd->getCol()] = RED_SOLDIER;
 		else
-			maze[sd.getRow()][sd.getCol()] = BLUE_SOLDIER;
+			maze[sd->getRow()][sd->getCol()] = BLUE_SOLDIER;
 
 		maze[prev_row][prev_col] = SPACE;
 	}
@@ -617,9 +692,8 @@ void MakeSoldierStep(Soldier sd, vector <Supporter>& team_supp, vector <Player>&
 
 void UpdatePlayersNewState()
 {
-
-
 	UpdatePlayersRoomLocation();	// Happend after team1/2 have already been updated
+
 }
 
 void GameFlow()
@@ -655,33 +729,25 @@ void GameFlow()
 	}
 
 	for (auto &sp : team1_supporters)
-		MakeSupporterStep(sp, team1_soldiers);
+		MakeSupporterStep(&sp, team1_soldiers);
 
 	for (auto &sd : team1_soldiers)
-		MakeSoldierStep(sd, team1_supporters, team2_vec);
+		MakeSoldierStep(&sd, team1_supporters, team2_vec);
 
 	for (auto &sp : team2_supporters)
-		MakeSupporterStep(sp, team2_soldiers);
+		MakeSupporterStep(&sp, team2_soldiers);
 
 	for (auto &sd : team2_soldiers)
-		MakeSoldierStep(sd, team2_supporters, team1_vec);
+		MakeSoldierStep(&sd, team2_supporters, team1_vec);
 
-	// TODO: UPDATE PLAYERS STATE
+	// TODO: UPDATE PLAYERS STATE (copy ctr?)
 	// TODO: Check if there is an aggressive soldier alive, if not - change this soldier's type
 	// TODO: Update locations
 	// TODO: Probably with using this current player's pointer
 	// TODO: Update room number
 	UpdatePlayersNewState();	// TODO: Implement
 
-	bool hasStock = false;
-	for (int i = 0; i < NUM_MED_ROOMS && !hasStock; i++)
-		if (maze[med_rooms[i]->getCenterRow()][med_rooms[i]->getCenterCol()] == MED)
-			hasStock = true;
-	for (int i = 0; i < NUM_AMMO_ROOMS && !hasStock; i++)
-		if (maze[ammo_rooms[i]->getCenterRow()][ammo_rooms[i]->getCenterCol()] == AMMO)
-			hasStock = true;
-
-	if (!hasStock)
+	if (CheckIfStockIsEmpty())
 		RefillStock();
 }
 

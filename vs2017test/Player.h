@@ -1,6 +1,9 @@
 #pragma once
 #include "Definitions.h"
-#include "PlayersDefinitions.h"
+#include "Cell.h"
+#include "CompareCells.h"
+#include "CompareCellsBySecurity.h"
+#include "Room.h"
 #include "TaskLeaf.h"
 
 const int MAX_HP = 100;
@@ -14,7 +17,7 @@ protected:
 	int hp, task, team;
 	int row, col, id, roomNum;
 	bool isAlive;
-	TaskTree* taskDecisionTree;	// Description on github/project-folder !!!
+	//TaskTree* taskDecisionTree;	// Description on github/project-folder !!!
 	Cell* DistanceFromStartAStar(int curr_row, int curr_col, int trow, int tcol, int maze[MSZ][MSZ],
 		double security_map[MSZ][MSZ]);
 	Cell* RestorePath(Cell* pCurrent);
@@ -45,7 +48,7 @@ public:
 	void setIsAlive(bool val) { isAlive = val; }
 	void setRoomNumber(int i) { roomNum = i; }
 	void Hide(int maze[MSZ][MSZ], double security_map[MSZ][MSZ]);
-	virtual void CalculateTask() = 0;
-	virtual void BattleMode() = 0;
+	virtual void CalculateTask() {}
+	virtual void BattleMode() {}
 	bool operator == (const Player& other) { return other.id == id && other.team == team; }
 };
