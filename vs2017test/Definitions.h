@@ -23,6 +23,7 @@ const int BLUE_SUPPORTER = 13;
 
 // Maze
 const int MSZ = 100;
+const int NUM_SECURITY_MAP_SIMULATIONS = 3;
 
 // Rooms
 const int NUM_ROOMS = 10;
@@ -42,13 +43,12 @@ const int RED = 0;
 const int BLUE = 1;
 
 // Players Settings
-
 const int NUM_PLAYERS = 3;
 const int NUM_SOLDIERS = 2;
 const int NUM_SUPPORTERS = 1;
 const int NUM_AGGRESSIVE_SOLDIERS = 1;
 
-double CalculateEuclideanDistance(int y, int x, int yy, int xx)
+static double CalculateEuclideanDistance(int y, int x, int yy, int xx)
 {
 	return sqrt(pow(y - yy, 2) + pow(x - xx, 2));
 }

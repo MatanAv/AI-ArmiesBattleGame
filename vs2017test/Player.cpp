@@ -93,7 +93,7 @@ Cell* Player::DistanceFromStartAStar(int curr_row, int curr_col, int trow, int t
 
 		// If current is actually a target then we stop A*
 		if (pCurrent->getRow() == trow && pCurrent->getCol() == tcol) // then it is target
-			return RestorePath(pCurrent);
+			return RestorePath(pCurrent, pstart->getRow(), pstart->getCol());
 
 		// paint current black
 		blacks.push_back(*pCurrent);
@@ -105,16 +105,16 @@ Cell* Player::DistanceFromStartAStar(int curr_row, int curr_col, int trow, int t
 		curr_row = pCurrent->getRow();
 		curr_col = pCurrent->getCol();
 
-		if (curr_row > 0)	// UP
+		if (curr_row > 0 && maze[curr_row - 1][curr_col] != WALL)	// UP
 			CheckNeighbor(pCurrent, curr_row - 1, curr_col, pq, grays, blacks,
 				CalculateG_BySecurityCost(pCurrent, security_map, curr_row - 1, curr_col));
-		if (curr_row < MSZ - 1)	// DOWN
+		if (curr_row < MSZ - 1 && maze[curr_row + 1][curr_col] != WALL)	// DOWN
 			CheckNeighbor(pCurrent, curr_row + 1, curr_col, pq, grays, blacks,
 				CalculateG_BySecurityCost(pCurrent, security_map, curr_row + 1, curr_col));
-		if (curr_col < MSZ - 1)	// RIGHT
+		if (curr_col < MSZ - 1 && maze[curr_row][curr_col + 1] != WALL)	// RIGHT
 			CheckNeighbor(pCurrent, curr_row, curr_col + 1, pq, grays, blacks,
 				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col + 1));
-		if (curr_col > 0)	// LEFT
+		if (curr_col > 0 && maze[curr_row][curr_col - 1] != WALL)	// LEFT
 			CheckNeighbor(pCurrent, curr_row, curr_col - 1, pq, grays, blacks,
 				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col - 1));
 	}
@@ -184,9 +184,10 @@ void Player::UpdatePQ(priority_queue <Cell, vector<Cell>, CompareCells>& pq, Cel
 	}
 }
 
-Cell* Player::RestorePath(Cell* pCurrent)
+Cell* Player::RestorePath(Cell* pCurrent, int start_row, int start_col)
 {
-	while (pCurrent->getParent()->getParent() != nullptr)
+	while (pCurrent->getParent()->getRow() != start_row ||
+		pCurrent->getParent()->getCol() != start_col)
 		pCurrent = pCurrent->getParent();
 	return pCurrent;	// returns the next step
 }
@@ -195,10 +196,11 @@ double Player::CalculateG_BySecurityCost(Cell* pCurrent, double security_map[MSZ
 {
 	// G is composed by distance from starting point
 	// Plus the cost of not secured cell
-	double security_cost = -log(security_map[nrow][ncol]);	// punishing unsecured cells with ln function
+	//double security_cost = -log(security_map[nrow][ncol]);	// punishing unsecured cells with ln function
 	double neighbor_g = pCurrent->getG() + 1;	// distance from starting point + 1
 
-	return neighbor_g + security_cost;
+	//return neighbor_g + (0.05 * security_cost);
+	return neighbor_g;
 }
 
 void Player::UpdateMinDistCoordinates(int y, int x, int yy, int xx, int* trow, int* tcol, double* minDist)
@@ -212,10 +214,13 @@ void Player::UpdateMinDistCoordinates(int y, int x, int yy, int xx, int* trow, i
 	}
 }
 
-bool Player::CheckEnemyInSameRoom(vector<Player> enemies)
+bool Player::CheckEnemyInSameRoom(vector<Player*> enemies)
 {
+	if (this->roomNum == -1)
+		return false;
+
 	for (auto& en : enemies)
-		if (en.getRoomNumber() == this->roomNum)
+		if (en->getRoomNumber() == this->roomNum)
 			return true;
 
 	return false;

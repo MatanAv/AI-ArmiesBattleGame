@@ -8,6 +8,8 @@ Bullet::Bullet()
 {
 	angle_direction = (rand() % 360)*3.14 / 180; // in radians
 	is_fired = false;
+	hit_row = -1;
+	hit_col = -1;
 }
 
 Bullet::Bullet(double xx, double yy)
@@ -18,6 +20,9 @@ Bullet::Bullet(double xx, double yy)
 	y = yy;
 	start_row = yy;
 	start_col = xx;
+	hit_row = -1;
+	hit_col = -1;
+	shooterTeam = -1;
 }
 
 Bullet::Bullet(double xx, double yy, double angle)
@@ -28,6 +33,8 @@ Bullet::Bullet(double xx, double yy, double angle)
 	y = yy;
 	start_row = yy;
 	start_col = xx;
+	hit_row = -1;
+	hit_col = -1;
 }
 
 Bullet::Bullet(double xx, double yy, double angle, int s_team)
@@ -39,6 +46,8 @@ Bullet::Bullet(double xx, double yy, double angle, int s_team)
 	shooterTeam = s_team;
 	start_row = yy;
 	start_col = xx;
+	hit_row = -1;
+	hit_col = -1;
 }
 
 Bullet::~Bullet()
@@ -67,6 +76,22 @@ void Bullet::move(int maze[MSZ][MSZ])
 	}
 	else if (maze[(int)y][(int)x] == WALL)
 		is_fired = false;
+	if (is_fired)
+	{
+		double speed = 0.1;
+		double dx, dy;
+		dx = cos(angle_direction);
+		dy = sin(angle_direction);
+		// update x,y
+		x += dx * speed;
+		y += dy * speed;
+	}
+}
+
+void Bullet::moveGrenadeBullet(int maze[MSZ][MSZ], int trow, int tcol)
+{
+	if (x == tcol && y == trow)
+		is_fired = false;	// Then grenade explodes
 	if (is_fired)
 	{
 		double speed = 0.1;

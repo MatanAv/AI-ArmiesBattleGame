@@ -34,8 +34,6 @@ const int RUN_AWAY = 47;
 const int SHOOT_BULLET = 48;
 const int THROW_GRENADE = 49;
 
-// Todo: may need to be more internal tasks
-
 class Supporter;
 
 class Soldier :
@@ -48,8 +46,8 @@ private:
     int enemy_row, enemy_col;
     bool needMedkit;
     bool needAmmo;
-    void FindClosestEnemyInMap(int* trow, int* tcol, vector<Player>& enemies);
-    void FindEnemyToFight(int* trow, int* tcol, vector<Player>& enemies, bool visibillity_map[MSZ][MSZ],
+    void FindClosestEnemyInMap(int* trow, int* tcol, vector<Player*>& enemies);
+    void FindEnemyToFight(int* trow, int* tcol, vector<Player*>& enemies, bool visibillity_map[MSZ][MSZ],
         double* isVisible);
     void FindClosestRoom(int* trow, int* tcol, Room* rooms[NUM_ROOMS]);
     void AttackEnemy(bool isVisible);
@@ -67,15 +65,16 @@ public:
     void setGrenades(int grenades) { num_grenades = grenades; }
     void setNeedMedkit(bool v) { needMedkit = v; }
     void setNeedAmmo(bool v) { needAmmo = v; }
-    void CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies,
+    void setSoldierType(int type) { soldierType = type; }
+    void CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player*>& enemies,
         bool visibillity_map[MSZ][MSZ], Supporter* sp);
     void CallForMedkit();
     void CallForAmmo();
     void RunAway(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], double security_map[MSZ][MSZ]);
     void MoveOnTowardsSupporter(int maze[MSZ][MSZ], Supporter* sp, double security_map[MSZ][MSZ]);
-    void FollowAggressiveTeammate(int maze[MSZ][MSZ], vector <Soldier>& soldiers, double security_map[MSZ][MSZ]);
-    void SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector <Player>& enemies, double security_map[MSZ][MSZ]);
-    void BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies,
+    void FollowAggressiveTeammate(int maze[MSZ][MSZ], vector <Soldier*>& soldiers, double security_map[MSZ][MSZ]);
+    void SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector <Player*>& enemies, double security_map[MSZ][MSZ]);
+    void BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player*>& enemies,
         bool visibillity_map[MSZ][MSZ]);
     void GetCloserToEnemy(int maze[MSZ][MSZ], double security_map[MSZ][MSZ]);
     Bullet* ShootBullet();

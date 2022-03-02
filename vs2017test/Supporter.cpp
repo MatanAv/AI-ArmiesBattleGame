@@ -16,11 +16,11 @@ Supporter::Supporter(int team, int id) : Player(team, id)
 	itemProvided = -1;
 }
 
-Soldier* Supporter::GetProvidedSoldier(vector<Soldier>& teammates)
+Soldier* Supporter::GetProvidedSoldier(vector<Soldier*>& teammates)
 {
 	for (auto& sd : teammates)
-		if (sd.getId() == soldierToProvide)
-			return &sd;
+		if (sd->getId() == soldierToProvide)
+			return sd;
 
 	return nullptr;
 }
@@ -53,7 +53,7 @@ Soldier* Supporter::GetProvidedSoldier(vector<Soldier>& teammates)
 //	taskDecisionTree->setNextNode(cond_medEmpty);
 //}
 
-void Supporter::CalculateTask(vector<Player>& enemies, vector<Soldier>& teammates)
+void Supporter::CalculateTask(vector<Player*>& enemies, vector<Soldier*>& teammates)
 {
 	if (hp < 20)
 		task = USE_MEDKIT;
@@ -166,7 +166,7 @@ void Supporter::ProvideMedkitToSoldier(int maze[MSZ][MSZ], Soldier* sd, double s
 	}
 }
 
-void Supporter::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], vector<Soldier>& teammates)
+void Supporter::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], vector<Soldier*>& teammates)
 {
 	Soldier* sd = GetProvidedSoldier(teammates);
 
@@ -178,7 +178,7 @@ void Supporter::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], ve
 		Hide(maze, security_map);
 }
 
-bool Supporter::CheckIfSoldierNeedHP(vector<Soldier>& teammates)
+bool Supporter::CheckIfSoldierNeedHP(vector<Soldier*>& teammates)
 {
 	if (soldierToProvide > -1 && itemProvided == MED)
 		return true;
@@ -186,10 +186,10 @@ bool Supporter::CheckIfSoldierNeedHP(vector<Soldier>& teammates)
 	// else - check if someone need better and who's urgent
 	int minHP = HUGE_VAL;
 	for (auto& sd : teammates)
-		if (sd.getNeedMedkit() && sd.getHP() < minHP)
+		if (sd->getNeedMedkit() && sd->getHP() < minHP)
 		{
-			soldierToProvide = sd.getId();
-			minHP = sd.getHP();
+			soldierToProvide = sd->getId();
+			minHP = sd->getHP();
 		}
 	
 	if (soldierToProvide < 0)	// None of the soldiers need medkit
@@ -199,7 +199,7 @@ bool Supporter::CheckIfSoldierNeedHP(vector<Soldier>& teammates)
 	return true;
 }
 
-bool Supporter::CheckIfSoldierNeedAmmo(vector<Soldier>& teammates)
+bool Supporter::CheckIfSoldierNeedAmmo(vector<Soldier*>& teammates)
 {
 	if (soldierToProvide > -1 && itemProvided == MED)
 		return true;
@@ -207,10 +207,10 @@ bool Supporter::CheckIfSoldierNeedAmmo(vector<Soldier>& teammates)
 	// else - check if someone need better and who's urgent
 	int minAmmo = HUGE_VAL;
 	for (auto& sd : teammates)
-		if (sd.getNeedAmmo() && (sd.getBullets() + sd.getGrenades()) < minAmmo)
+		if (sd->getNeedAmmo() && (sd->getBullets() + sd->getGrenades()) < minAmmo)
 		{
-			soldierToProvide = sd.getId();
-			minAmmo = sd.getBullets() + sd.getGrenades();
+			soldierToProvide = sd->getId();
+			minAmmo = sd->getBullets() + sd->getGrenades();
 		}
 
 	if (soldierToProvide < 0)	// None of the soldiers need medkit
@@ -220,20 +220,28 @@ bool Supporter::CheckIfSoldierNeedAmmo(vector<Soldier>& teammates)
 	return true;
 }
 
-void Supporter::FollowTeammates(int maze[MSZ][MSZ], vector<Soldier>& soldiers, double security_map[MSZ][MSZ])
+void Supporter::FollowTeammates(int maze[MSZ][MSZ], vector<Soldier*>& soldiers, double security_map[MSZ][MSZ])
 {
 	Cell* next;
 	int trow = 0, tcol = 0;
 
 	for (auto &s : soldiers)
 	{
-		trow += s.getCol();
-		tcol += s.getRow();
+		trow += s->getRow();
+		tcol += s->getCol();
 	}
-
+	 
 	// Target is the average cell, between all of the soldiers
 	trow /= NUM_SOLDIERS;
 	tcol /= NUM_SOLDIERS;
+
+	if (maze[(int)trow][(int)tcol] != SPACE)
+		for (auto& s : soldiers)
+			if (s->getSoldierType() == AGGRESSIVE)
+			{
+				trow = s->getRow();
+				tcol = s->getCol();
+			}
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 	

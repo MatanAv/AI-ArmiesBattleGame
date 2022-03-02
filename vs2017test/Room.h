@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Definitions.h"
 
 class Room

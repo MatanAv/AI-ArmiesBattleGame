@@ -18,7 +18,7 @@ Soldier::Soldier(int team, int id, int type) : Player(team, id)
 	needAmmo = false;
 }
 
-void Soldier::CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies,
+void Soldier::CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player*>& enemies,
 	bool visibillity_map[MSZ][MSZ], Supporter* sp)
 {
 	if (CheckEnemyInSameRoom(enemies))
@@ -41,7 +41,7 @@ void Soldier::CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], R
 		else
 			task = HIDE;
 	}
-	else if (soldierType == AGGRESSIVE)	// Todo: Make sure it becomes to aggressive when others dead
+	else if (soldierType == AGGRESSIVE)
 		task = SEARCH_ENEMIES;
 	else
 		task = FOLLOW_AGGRESSIVE_TEAMMATE;
@@ -49,13 +49,13 @@ void Soldier::CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], R
 
 void Soldier::CallForMedkit()
 {
-	cout << "Soldier " << this->id << " from team " << this->team << " has called for medkit";
+	cout << "Soldier " << this->id << " from team " << this->team << " has called for medkit\n";
 	needMedkit = true;
 }
 
 void Soldier::CallForAmmo()
 {
-	cout << "Soldier " << this->id << " from team " << this->team << " has called for ammo";
+	cout << "Soldier " << this->id << " from team " << this->team << " has called for ammo\n";
 	needAmmo = true;
 }
 
@@ -91,7 +91,7 @@ void Soldier::MoveOnTowardsSupporter(int maze[MSZ][MSZ], Supporter* sp, double s
 	col = next->getCol();
 }
 
-void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier>& soldiers, double security_map[MSZ][MSZ])
+void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier*>& soldiers, double security_map[MSZ][MSZ])
 {
 	Cell* next;
 	int trow, tcol;
@@ -99,8 +99,8 @@ void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier>& sold
 
 	// Determine target by closest aggressive teammate
 	for (auto& sd : soldiers)
-		if (sd.getId() != this->id && sd.getSoldierType() == AGGRESSIVE)
-			UpdateMinDistCoordinates(row, col, sd.getRow(), sd.getCol(), &trow, &tcol, &minDist);
+		if (sd->getId() != this->id && sd->getSoldierType() == AGGRESSIVE)
+			UpdateMinDistCoordinates(row, col, sd->getRow(), sd->getCol(), &trow, &tcol, &minDist);
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 
@@ -109,7 +109,7 @@ void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier>& sold
 	col = next->getCol();
 }
 
-void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies, double security_map[MSZ][MSZ])
+void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player*>& enemies, double security_map[MSZ][MSZ])
 {
 	Cell* next;
 	int trow, tcol;
@@ -120,8 +120,8 @@ void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vecto
 
 	// Check for if he isn't in a tunnel
 	for (auto& en : enemies)
-		if (en.getRow() == trow && en.getCol() == tcol)
-			if (en.getRoomNumber() != -1)
+		if (en->getRow() == trow && en->getCol() == tcol)
+			if (en->getRoomNumber() != -1)
 				enemyInRoom = true;
 
 	// if enemy not in tunnel, chase him, else - go to another room
@@ -135,7 +135,7 @@ void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vecto
 	col = next->getCol();
 }
 
-void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player>& enemies,
+void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player*>& enemies,
 	bool visibillity_map[MSZ][MSZ])
 {
 	priority_queue<double, vector<double>, greater<double>> task_q;
@@ -232,24 +232,23 @@ Bullet* Soldier::ShootBullet()
 
 Grenade* Soldier::ThrowGrenade()
 {
-	// TODO: Grenade animation maybe should be at main.cpp (idle func)
-	
-	Grenade* pg = new Grenade(col, row, atan2(enemy_row, enemy_col));
+	Grenade* pg = new Grenade(enemy_row, enemy_col, 
+		new Bullet(col, row, atan2(row, col), this->team));
 	pg->setIsExploded(true);
 	num_grenades--;
 
 	return pg;
 }
 
-void Soldier::FindClosestEnemyInMap(int *trow, int *tcol, vector<Player>& enemies)
+void Soldier::FindClosestEnemyInMap(int *trow, int *tcol, vector<Player*>& enemies)
 {
 	double minDist = HUGE_VAL;
 
 	for (auto& en : enemies)
-		UpdateMinDistCoordinates(row, col, en.getRow(), en.getCol(), trow, tcol, &minDist);
+		UpdateMinDistCoordinates(row, col, en->getRow(), en->getCol(), trow, tcol, &minDist);
 }
 
-void Soldier::FindEnemyToFight(int* trow, int* tcol, vector<Player>& enemies, bool visibillity_map[MSZ][MSZ],
+void Soldier::FindEnemyToFight(int* trow, int* tcol, vector<Player*>& enemies, bool visibillity_map[MSZ][MSZ],
 	double* isVisible)
 {
 	double minDist = HUGE_VAL;
@@ -258,10 +257,10 @@ void Soldier::FindEnemyToFight(int* trow, int* tcol, vector<Player>& enemies, bo
 
 	// find all visibles, if there aren't, gather all enemies in same room
 	for (auto& en : enemies)
-		if (en.getRoomNumber() == this->roomNum && visibillity_map[en.getRow()][en.getCol()] == true)
-			visibles.push_back(en);
-		else if (!visibles.empty() && en.getRoomNumber() == this->roomNum)
-			sameRoom.push_back(en);
+		if (en->getRoomNumber() == this->roomNum && visibillity_map[en->getRow()][en->getCol()] == true)
+			visibles.push_back(*en);
+		else if (!visibles.empty() && en->getRoomNumber() == this->roomNum)
+			sameRoom.push_back(*en);
 
 	// find closest visible enemy and flag him as "visible"
 	if (!visibles.empty())

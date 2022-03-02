@@ -21,9 +21,9 @@ private:
     int num_medkits;
     int soldierToProvide;
     int itemProvided;
-    bool CheckIfSoldierNeedHP(vector<Soldier>& teammates);
-    bool CheckIfSoldierNeedAmmo(vector<Soldier>& teammates);
-    Soldier* GetProvidedSoldier(vector<Soldier>& teammates);
+    bool CheckIfSoldierNeedHP(vector<Soldier*>& teammates);
+    bool CheckIfSoldierNeedAmmo(vector<Soldier*>& teammates);
+    Soldier* GetProvidedSoldier(vector<Soldier*>& teammates);
 public:
     Supporter();
     ~Supporter();
@@ -34,13 +34,13 @@ public:
     void setAmmo(int ammo) { num_ammo = ammo; }
     void setMedkits(int meds) { num_medkits = meds; }
     void setSoldierProvided(int id) { soldierToProvide = id; }
-    void CalculateTask(vector<Player>& enemies, vector<Soldier>& teammates);
-    void FollowTeammates(int maze[MSZ][MSZ], vector<Soldier>& soldiers, double security_map[MSZ][MSZ]);
+    void CalculateTask(vector<Player*>& enemies, vector<Soldier*>& teammates);
+    void FollowTeammates(int maze[MSZ][MSZ], vector<Soldier*>& soldiers, double security_map[MSZ][MSZ]);
     void UseMedkit();
     void FillMedkitStock(int maze[MSZ][MSZ], Room* med_rooms[NUM_MED_ROOMS], double security_map[MSZ][MSZ]);
     void FillAmmoStock(int maze[MSZ][MSZ], Room* ammo_rooms[NUM_AMMO_ROOMS], double security_map[MSZ][MSZ]);
     void ProvideAmmoToSoldier(int maze[MSZ][MSZ], Soldier* sd, double security_map[MSZ][MSZ]);
     void ProvideMedkitToSoldier(int maze[MSZ][MSZ], Soldier* sd, double security_map[MSZ][MSZ]);
-    void BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], vector<Soldier>& teammates);
+    void BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], vector<Soldier*>& teammates);
 };
 
