@@ -48,6 +48,9 @@ const int NUM_SOLDIERS = 2;
 const int NUM_SUPPORTERS = 1;
 const int NUM_AGGRESSIVE_SOLDIERS = 1;
 
+const int CHECK = 4;
+
+
 static double CalculateEuclideanDistance(int y, int x, int yy, int xx)
 {
 	return sqrt(pow(y - yy, 2) + pow(x - xx, 2));

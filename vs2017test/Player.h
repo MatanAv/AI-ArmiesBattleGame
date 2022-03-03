@@ -23,6 +23,8 @@ protected:
 	Cell* RestorePath(Cell* pCurrent, int start_row, int start_col);
 	double CalculateG_BySecurityCost(Cell* pCurrent, double security_map[MSZ][MSZ], int nrow, int ncol);
 	bool CheckEnemyInSameRoom(vector<Player*> enemies);
+	void CheckStepsDirection(int maze[MSZ][MSZ], int c_row, int c_col, bool* up, bool* down,
+		bool* right, bool* left);
 	void CheckNeighbor(Cell* pCurrent, int nrow, int ncol,
 		priority_queue <Cell, vector<Cell>, CompareCells>& pq,
 		vector <Cell>& grays, vector <Cell>& blacks, double g);

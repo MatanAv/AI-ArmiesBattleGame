@@ -895,7 +895,7 @@ void idle()
 
 	CheckIfAnyTeamWins();
 
-	Sleep(500);
+	Sleep(50);
 
 	glutPostRedisplay(); // indirect call to display
 }

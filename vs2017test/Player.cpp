@@ -105,16 +105,30 @@ Cell* Player::DistanceFromStartAStar(int curr_row, int curr_col, int trow, int t
 		curr_row = pCurrent->getRow();
 		curr_col = pCurrent->getCol();
 
-		if (curr_row > 0 && maze[curr_row - 1][curr_col] != WALL)	// UP
+		bool up = false, down = false,
+			right = false, left = false;
+
+		CheckStepsDirection(maze, curr_row, curr_col, &up, &down, &right, &left);
+
+
+		bool arr[CHECK] = { up, down, right, left };
+		/*bool check = up || down || right || left;
+		if (!check)
+		{
+			int x = 0;
+			x++;
+		}*/
+
+		if (up)
 			CheckNeighbor(pCurrent, curr_row - 1, curr_col, pq, grays, blacks,
 				CalculateG_BySecurityCost(pCurrent, security_map, curr_row - 1, curr_col));
-		if (curr_row < MSZ - 1 && maze[curr_row + 1][curr_col] != WALL)	// DOWN
+		if (down)
 			CheckNeighbor(pCurrent, curr_row + 1, curr_col, pq, grays, blacks,
 				CalculateG_BySecurityCost(pCurrent, security_map, curr_row + 1, curr_col));
-		if (curr_col < MSZ - 1 && maze[curr_row][curr_col + 1] != WALL)	// RIGHT
+		if (right)
 			CheckNeighbor(pCurrent, curr_row, curr_col + 1, pq, grays, blacks,
 				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col + 1));
-		if (curr_col > 0 && maze[curr_row][curr_col - 1] != WALL)	// LEFT
+		if (left)
 			CheckNeighbor(pCurrent, curr_row, curr_col - 1, pq, grays, blacks,
 				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col - 1));
 	}
@@ -186,9 +200,14 @@ void Player::UpdatePQ(priority_queue <Cell, vector<Cell>, CompareCells>& pq, Cel
 
 Cell* Player::RestorePath(Cell* pCurrent, int start_row, int start_col)
 {
+	// In case player won't move this step
+	if (pCurrent->getRow() == start_row && pCurrent->getCol() == start_col)
+		return pCurrent;
+
 	while (pCurrent->getParent()->getRow() != start_row ||
 		pCurrent->getParent()->getCol() != start_col)
 		pCurrent = pCurrent->getParent();
+
 	return pCurrent;	// returns the next step
 }
 
@@ -197,10 +216,11 @@ double Player::CalculateG_BySecurityCost(Cell* pCurrent, double security_map[MSZ
 	// G is composed by distance from starting point
 	// Plus the cost of not secured cell
 	//double security_cost = -log(security_map[nrow][ncol]);	// punishing unsecured cells with ln function
-	double neighbor_g = pCurrent->getG() + 1;	// distance from starting point + 1
+	//double neighbor_g = pCurrent->getG() + 1;	// distance from starting point + 1
 
 	//return neighbor_g + (0.05 * security_cost);
-	return neighbor_g;
+	//return neighbor_g;
+	return 0;
 }
 
 void Player::UpdateMinDistCoordinates(int y, int x, int yy, int xx, int* trow, int* tcol, double* minDist)
@@ -224,5 +244,40 @@ bool Player::CheckEnemyInSameRoom(vector<Player*> enemies)
 			return true;
 
 	return false;
+}
+
+void Player::CheckStepsDirection(int maze[MSZ][MSZ], int c_row, int c_col, bool* up, bool* down, bool* right, bool* left)
+{
+	*up = c_row > 0 && maze[c_row - 1][c_col] == SPACE ||
+		maze[c_row - 1][c_col] == MED ||
+		maze[c_row - 1][c_col] == AMMO ||
+		maze[c_row - 1][c_col] == RED_SOLDIER ||
+		maze[c_row - 1][c_col] == RED_SUPPORTER ||
+		maze[c_row - 1][c_col] == BLUE_SOLDIER ||
+		maze[c_row - 1][c_col] == BLUE_SUPPORTER;
+
+	*down = c_row < MSZ - 1 && maze[c_row + 1][c_col] == SPACE ||
+		maze[c_row + 1][c_col] == MED ||
+		maze[c_row + 1][c_col] == AMMO ||
+		maze[c_row + 1][c_col] == RED_SOLDIER ||
+		maze[c_row + 1][c_col] == RED_SUPPORTER ||
+		maze[c_row + 1][c_col] == BLUE_SOLDIER ||
+		maze[c_row + 1][c_col] == BLUE_SUPPORTER;
+		
+	*right = c_col < MSZ - 1 && maze[c_row][c_col + 1] == SPACE ||
+		maze[c_row][c_col + 1] == MED ||
+		maze[c_row][c_col + 1] == AMMO ||
+		maze[c_row][c_col + 1] == RED_SOLDIER ||
+		maze[c_row][c_col + 1] == RED_SUPPORTER ||
+		maze[c_row][c_col + 1] == BLUE_SOLDIER ||
+		maze[c_row][c_col + 1] == BLUE_SUPPORTER;
+	
+	*left = c_col > 0 && maze[c_row][c_col - 1] == SPACE ||
+		maze[c_row][c_col - 1] == MED ||
+		maze[c_row][c_col - 1] == AMMO ||
+		maze[c_row][c_col - 1] == RED_SOLDIER ||
+		maze[c_row][c_col - 1] == RED_SUPPORTER ||
+		maze[c_row][c_col - 1] == BLUE_SOLDIER ||
+		maze[c_row][c_col - 1] == BLUE_SUPPORTER;
 }
 
