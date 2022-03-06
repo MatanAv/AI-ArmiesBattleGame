@@ -27,9 +27,10 @@ protected:
 		bool* right, bool* left);
 	void CheckNeighbor(Cell* pCurrent, int nrow, int ncol,
 		priority_queue <Cell, vector<Cell>, CompareCells>& pq,
-		vector <Cell>& grays, vector <Cell>& blacks, double g);
+		vector <Cell>& grays, vector <Cell>& blacks, double g, double security_map[MSZ][MSZ]);
 	void UpdatePQ(priority_queue <Cell, vector<Cell>, CompareCells>& pq, Cell* pn);
 	void UpdateMinDistCoordinates(int y, int x, int yy, int xx, int* trow, int* tcol, double* minDist);
+	void RandomizePointByRadius(int maze[MSZ][MSZ], int* r_row, int* r_col, int radius);
 public:
 	Player();
 	~Player();

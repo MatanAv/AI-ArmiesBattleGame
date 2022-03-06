@@ -271,6 +271,9 @@ void InitTeams()
 	PlaceInRooms(r, false);
 }
 
+
+
+
 void RestorePath(Cell* pCurrent,int start_row, int start_col)
 {
 	
@@ -282,8 +285,6 @@ void RestorePath(Cell* pCurrent,int start_row, int start_col)
 		pCurrent = pCurrent->getParent();
 	}
 }
-
-
 // who is the neighbor at nrow ncol? If it is white then paint it gray and add to pq
 // If it is gray then check two cases: 
 //	1. if F of this neighbor is now better then what was before then we need to update the neighbor
@@ -464,29 +465,27 @@ void ShowMaze()
 
 
 
-
-
-bool CheckIfCellOnTarget(int row, int col, int trow, int tcol)
-{
-	Bullet* b = new Bullet(col, row, atan2(trow, tcol));
-	b->setIsFired(true);
-
-	return b->SimulateFireOnTarget(maze, trow, tcol);
-}
-
 void CreateSecurityMap()
 {
 	int num_simulations = 1000;
 	double damage = 0.001;
 	int x, y;
 
-	for(int i=0;i<num_simulations;i++)
+	for (int i = 0; i < num_simulations; i++)
 	{
 		x = rand() % MSZ;
 		y = rand() % MSZ;
 		Grenade* g = new Grenade(x, y);
-		g->SimulateExplosion(maze, security_map,damage);
+		g->SimulateExplosion(maze, security_map, damage);
 	}
+}
+
+bool CheckIfCellOnTarget(int row, int col, int trow, int tcol)
+{
+	Bullet* b = new Bullet(col, row, CalculateDirectedAngle(row, col, trow, tcol));
+	b->setIsFired(true);
+
+	return b->SimulateFireOnTarget(maze, trow, tcol);
 }
 
 void CreateVisibillityMapForPlayer(Soldier* sd, bool visibillity_map[MSZ][MSZ])
@@ -541,7 +540,7 @@ bool CheckInsideARoom(Player* p, Room* r)
 	return p->getRow() < r->getCenterRow() + (r->getH() / 2) &&
 		p->getRow() > r->getCenterRow() - (r->getH() / 2) && 
 		p->getCol() < r->getCenterCol() + (r->getW() / 2) &&
-		p->getCol() < r->getCenterCol() - (r->getW() / 2);
+		p->getCol() > r->getCenterCol() - (r->getW() / 2);
 }
 
 void UpdatePlayersRoomLocation()
@@ -629,16 +628,17 @@ void MakeSupporterStep(Supporter* sp, vector <Soldier*>& teammates, vector<Playe
 void MakeSoldierStep(Soldier* sd, vector <Soldier*>& team_soldiers, Supporter* team_supporter, vector <Player*>& enemies)
 {
 	int prev_row = sd->getRow(), prev_col = sd->getCol();
-
 	bool visibillity_map[MSZ][MSZ] = { 0 };
-	if (sd->getRoomNumber() > -1)
-		CreateVisibillityMapForPlayer(sd, visibillity_map);
 
+	// Task Choosing
 	sd->CalculateTask(maze, security_map, rooms, enemies, visibillity_map, team_supporter);
-
 	if (sd->getTask() == SOLDIER_BATTLE_MODE)
+	{
+		CreateVisibillityMapForPlayer(sd, visibillity_map);
 		sd->BattleMode(maze, security_map, rooms, enemies, visibillity_map);	// Choosing battle-task
+	}
 
+	// Task Execution
 	switch (sd->getTask())
 	{
 		case CALL_FOR_MEDKIT:
@@ -673,6 +673,7 @@ void MakeSoldierStep(Soldier* sd, vector <Soldier*>& team_soldiers, Supporter* t
 			break;
 	}
 
+	// Update Map
 	if (sd->getRow() != prev_row || sd->getCol() != prev_col)
 	{
 		if (sd->getTeamColor() == RED)
@@ -728,16 +729,20 @@ void RunGameFlow()
 		MakeSupporterStep(blue_supporter, blue_soldiers, reds_vec);
 
 	for (auto& sd : red_soldiers)
-		MakeSoldierStep(sd, red_soldiers, red_supporter, blues_vec);
+		if (sd->getSoldierType() == AGGRESSIVE)
+			MakeSoldierStep(sd, red_soldiers, red_supporter, blues_vec);
 
 	for (auto& sd : blue_soldiers)
-		MakeSoldierStep(sd, blue_soldiers, blue_supporter, reds_vec);
+		if (sd->getSoldierType() == AGGRESSIVE)
+			MakeSoldierStep(sd, blue_soldiers, blue_supporter, reds_vec);
 
 	UpdatePlayersRoomLocation();
 
 	if (CheckIfStockIsEmpty())
 		RefillStock();
 }
+
+
 
 // Move bullets
 void HandleBulletsFiring()
@@ -862,8 +867,6 @@ void CheckIfAnyTeamWins()
 
 
 
-
-
 void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT); // clean frame buffer
@@ -885,7 +888,7 @@ void display()
 // runs all the time in the background
 void idle()
 {
-	if (startGame)
+	if (startGame && bullets.empty() && grenades.empty())
 		RunGameFlow();
 
 	HandleBulletsFiring();

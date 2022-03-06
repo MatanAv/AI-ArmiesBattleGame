@@ -51,6 +51,7 @@ private:
         double* isVisible);
     void FindClosestRoom(int* trow, int* tcol, Room* rooms[NUM_ROOMS]);
     void AttackEnemy(bool isVisible);
+    void UpdateNextSoldierStep(int maze[MSZ][MSZ], Cell* next);
 public:
     Soldier();
     ~Soldier();

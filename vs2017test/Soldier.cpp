@@ -22,7 +22,7 @@ void Soldier::CalculateTask(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], R
 	bool visibillity_map[MSZ][MSZ], Supporter* sp)
 {
 	if (CheckEnemyInSameRoom(enemies))
-		BattleMode(maze, security_map, rooms, enemies, visibillity_map);	// Choosing battle task
+		task = SOLDIER_BATTLE_MODE;	// Choosing battle task
 	else if (hp < 20)
 	{
 		if (needMedkit == false)
@@ -69,9 +69,7 @@ void Soldier::RunAway(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], double securit
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	UpdateNextSoldierStep(maze, next);
 }
 
 void Soldier::MoveOnTowardsSupporter(int maze[MSZ][MSZ], Supporter* sp, double security_map[MSZ][MSZ])
@@ -86,14 +84,12 @@ void Soldier::MoveOnTowardsSupporter(int maze[MSZ][MSZ], Supporter* sp, double s
 		team == BLUE && maze[next->getRow()][next->getCol()] == BLUE_SUPPORTER)
 		return;
 
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	UpdateNextSoldierStep(maze, next);
 }
 
 void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier*>& soldiers, double security_map[MSZ][MSZ])
 {
-	Cell* next;
+	Cell* next, c;
 	int trow, tcol;
 	double minDist = HUGE_VAL;
 
@@ -102,11 +98,29 @@ void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier*>& sol
 		if (sd->getId() != this->id && sd->getSoldierType() == AGGRESSIVE)
 			UpdateMinDistCoordinates(row, col, sd->getRow(), sd->getCol(), &trow, &tcol, &minDist);
 
+	priority_queue <Cell, vector<Cell>, CompareCells> followTeam_pq;
+
+	if (roomNum != -1) // if not in a tunnel -> find random cell to reach, which closest to aggressive
+	{
+		priority_queue <Cell, vector<Cell>, CompareCells> followTeam_pq;
+
+		while (followTeam_pq.size() < 3)
+		{
+			int x, y;
+			do {
+				RandomizePointByRadius(maze, &y, &x, 30);
+			} while (maze[y][x] != SPACE);
+
+			followTeam_pq.push(*(new Cell(y, x, trow, tcol, 0, nullptr)));
+		}
+
+		c = followTeam_pq.top();
+		trow = c.getRow(), tcol = c.getCol();
+	}
+
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	UpdateNextSoldierStep(maze, next);
 }
 
 void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player*>& enemies, double security_map[MSZ][MSZ])
@@ -130,15 +144,13 @@ void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vecto
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	UpdateNextSoldierStep(maze, next);
 }
 
 void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room* rooms[NUM_ROOMS], vector<Player*>& enemies,
 	bool visibillity_map[MSZ][MSZ])
 {
-	priority_queue<double, vector<double>, greater<double>> task_q;
+	priority_queue<double, vector<double>, less<double>> task_q;
 	double hp_per = hp / MAX_HP;
 	double ammo_per = (num_bullets + num_grenades) / (MAX_BULLETS + MAX_GRENADES);
 	double grenade_per = num_grenades / MAX_GRENADES;
@@ -149,7 +161,7 @@ void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room
 		CallForMedkit();
 	if (ammo_per < 0.35)
 		CallForAmmo();
-
+	
 	FindEnemyToFight(&enemy_row, &enemy_col, enemies, visibillity_map, &is_visible);
 
 	dist_per = CalculateEuclideanDistance(row, col, enemy_row, enemy_col) /
@@ -209,11 +221,26 @@ void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room
 
 void Soldier::GetCloserToEnemy(int maze[MSZ][MSZ], double security_map[MSZ][MSZ])
 {
-	Cell* next = DistanceFromStartAStar(this->row, this->col, enemy_row, enemy_col, maze, security_map);
+	Cell* next, c;
+	int trow = enemy_row, tcol = enemy_col;
+	priority_queue <Cell, vector<Cell>, CompareCells> getCloser_pq;
 
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	while (getCloser_pq.size() < 5)
+	{
+		int x, y;
+		do {
+			RandomizePointByRadius(maze, &y, &x, 5);
+		} while (maze[y][x] != SPACE);
+
+		getCloser_pq.push(*(new Cell(y, x, trow, tcol, 0, nullptr)));
+	}
+
+	c = getCloser_pq.top();
+	trow = c.getRow(), tcol = c.getCol();
+
+	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
+
+	UpdateNextSoldierStep(maze, next);
 }
 
 void Soldier::AttackEnemy(bool isVisible)
@@ -223,7 +250,7 @@ void Soldier::AttackEnemy(bool isVisible)
 
 Bullet* Soldier::ShootBullet()
 {
-	Bullet* pb = new Bullet(col, row, atan2(enemy_row, enemy_col));
+	Bullet* pb = new Bullet(col, row, CalculateDirectedAngle(row, col, enemy_row, enemy_col));
 	pb->setIsFired(true);
 	num_bullets--;
 
@@ -233,7 +260,7 @@ Bullet* Soldier::ShootBullet()
 Grenade* Soldier::ThrowGrenade()
 {
 	Grenade* pg = new Grenade(enemy_row, enemy_col, 
-		new Bullet(col, row, atan2(row, col), this->team));
+		new Bullet(col, row, CalculateDirectedAngle(row, col, enemy_row, enemy_col), this->team));
 	pg->setIsExploded(true);
 	num_grenades--;
 
@@ -257,11 +284,12 @@ void Soldier::FindEnemyToFight(int* trow, int* tcol, vector<Player*>& enemies, b
 
 	// find all visibles, if there aren't, gather all enemies in same room
 	for (auto& en : enemies)
-		if (en->getRoomNumber() == this->roomNum && visibillity_map[en->getRow()][en->getCol()] == true)
-			visibles.push_back(*en);
-		else if (!visibles.empty() && en->getRoomNumber() == this->roomNum)
-			sameRoom.push_back(*en);
-
+		if (en->getRoomNumber() == this->roomNum)
+			if (visibillity_map[en->getRow()][en->getCol()] == true)
+				visibles.push_back(*en);
+			else if (visibles.empty())
+				sameRoom.push_back(*en);
+		
 	// find closest visible enemy and flag him as "visible"
 	if (!visibles.empty())
 		for (auto& en : visibles)
@@ -288,4 +316,13 @@ void Soldier::FindClosestRoom(int* trow, int* tcol, Room* rooms[NUM_ROOMS])
 		if (i != this->roomNum)
 			UpdateMinDistCoordinates(row, col, rooms[i]->getCenterRow(), rooms[i]->getCenterCol(),
 				trow, tcol, &minDist);
+}
+
+void Soldier::UpdateNextSoldierStep(int maze[MSZ][MSZ], Cell* next)
+{
+	if (maze[next->getRow()][next->getCol()] == SPACE)
+	{
+		row = next->getRow();
+		col = next->getCol();
+	}
 }

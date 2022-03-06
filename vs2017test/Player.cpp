@@ -34,7 +34,7 @@ Player::Player(int team, int id)
 // TODO: May should be private
 void Player::Hide(int maze[MSZ][MSZ], double security_map[MSZ][MSZ])
 {
-	Cell* next;
+	Cell* next, c;
 	int trow, tcol;
 	priority_queue <Cell, vector<Cell>, CompareCellsBySecurity> pq_target;
 
@@ -42,32 +42,22 @@ void Player::Hide(int maze[MSZ][MSZ], double security_map[MSZ][MSZ])
 	while (pq_target.size() < 20)
 	{
 		int x, y;
-		Cell* c;
-
 		do {
-			x = rand() % 10;
-			y = rand() % 10;
-			// For randomize left,right,up,down
-			if (rand() % 2)
-				x = -x;
-			if (rand() % 2)
-				y = -y;
-			// Now this is the steps size from current supporter position
-			x += col;
-			y += row;
+			RandomizePointByRadius(maze, &y, &x, 10);
 		} while (maze[y][x] != SPACE);
 
-		c = new Cell(y, x, security_map[y][x]);
-		pq_target.push(*c);
+		pq_target.push(*(new Cell(y, x, security_map[y][x])));
 	}
 
-	Cell c = pq_target.top();
+	c = pq_target.top();
 
 	next = DistanceFromStartAStar(this->row, this->col, c.getRow(), c.getCol(), maze, security_map);
 
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	if (maze[next->getRow()][next->getCol()] == SPACE)
+	{
+		row = next->getRow();
+		col = next->getCol();
+	}
 }
 
 Cell* Player::DistanceFromStartAStar(int curr_row, int curr_col, int trow, int tcol, int maze[MSZ][MSZ],
@@ -79,7 +69,6 @@ Cell* Player::DistanceFromStartAStar(int curr_row, int curr_col, int trow, int t
 	Cell* pstart = new Cell(curr_row, curr_col, trow, tcol, 0, nullptr,
 		security_map[curr_row][curr_col]);
 	Cell* pCurrent;
-	bool targetFound = false;
 
 	// initializes grays and pq
 	grays.push_back(*pstart);
@@ -110,38 +99,29 @@ Cell* Player::DistanceFromStartAStar(int curr_row, int curr_col, int trow, int t
 
 		CheckStepsDirection(maze, curr_row, curr_col, &up, &down, &right, &left);
 
-
-		bool arr[CHECK] = { up, down, right, left };
-		/*bool check = up || down || right || left;
-		if (!check)
-		{
-			int x = 0;
-			x++;
-		}*/
-
 		if (up)
 			CheckNeighbor(pCurrent, curr_row - 1, curr_col, pq, grays, blacks,
-				CalculateG_BySecurityCost(pCurrent, security_map, curr_row - 1, curr_col));
+				CalculateG_BySecurityCost(pCurrent, security_map, curr_row - 1, curr_col), security_map);
 		if (down)
 			CheckNeighbor(pCurrent, curr_row + 1, curr_col, pq, grays, blacks,
-				CalculateG_BySecurityCost(pCurrent, security_map, curr_row + 1, curr_col));
+				CalculateG_BySecurityCost(pCurrent, security_map, curr_row + 1, curr_col), security_map);
 		if (right)
 			CheckNeighbor(pCurrent, curr_row, curr_col + 1, pq, grays, blacks,
-				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col + 1));
+				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col + 1), security_map);
 		if (left)
 			CheckNeighbor(pCurrent, curr_row, curr_col - 1, pq, grays, blacks,
-				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col - 1));
+				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col - 1), security_map);
 	}
 }
 
 void Player::CheckNeighbor(Cell* pCurrent, int nrow, int ncol,
 	priority_queue <Cell, vector<Cell>, CompareCells>& pq,
-	vector <Cell>& grays, vector <Cell>& blacks, double g)
+	vector <Cell>& grays, vector <Cell>& blacks, double g, double security_map[MSZ][MSZ])
 {
 	vector<Cell>::iterator it_gray;
 	vector<Cell>::iterator it_black;
 	Cell* pn = new Cell(nrow, ncol, pCurrent->getTargetRow(),
-		pCurrent->getTargetCol(), g, pCurrent);
+		pCurrent->getTargetCol(), g, pCurrent, security_map[nrow][ncol]);
 
 	// check the color of this neighbor
 	it_black = find(blacks.begin(), blacks.end(), *pn);
@@ -215,12 +195,14 @@ double Player::CalculateG_BySecurityCost(Cell* pCurrent, double security_map[MSZ
 {
 	// G is composed by distance from starting point
 	// Plus the cost of not secured cell
-	//double security_cost = -log(security_map[nrow][ncol]);	// punishing unsecured cells with ln function
-	//double neighbor_g = pCurrent->getG() + 1;	// distance from starting point + 1
+	//double security_cost = -log(security_map[nrow][ncol] + 0.01);	// punishing unsecured cells with ln function
+	//double security_cost = pCurrent->getSecurityLevel();
+	double neighbor_g = pCurrent->getG() + 1;	// distance from starting point + 1
 
 	//return neighbor_g + (0.05 * security_cost);
-	//return neighbor_g;
-	return 0;
+	return neighbor_g;
+	//return security_cost;
+	//return 0;
 }
 
 void Player::UpdateMinDistCoordinates(int y, int x, int yy, int xx, int* trow, int* tcol, double* minDist)
@@ -234,13 +216,33 @@ void Player::UpdateMinDistCoordinates(int y, int x, int yy, int xx, int* trow, i
 	}
 }
 
+void Player::RandomizePointByRadius(int maze[MSZ][MSZ], int* r_row, int* r_col, int radius)
+{
+	int x, y;
+	do {
+		x = rand() % radius;
+		y = rand() % radius;
+		// For randomize left,right,up,down
+		if (rand() % 2)
+			x = -x;
+		if (rand() % 2)
+			y = -y;
+		// Now this is the steps size from current supporter position
+		x += col;
+		y += row;
+	} while (maze[y][x] != SPACE);
+
+	*r_row = y;
+	*r_col = x;
+}
+
 bool Player::CheckEnemyInSameRoom(vector<Player*> enemies)
 {
 	if (this->roomNum == -1)
 		return false;
 
 	for (auto& en : enemies)
-		if (en->getRoomNumber() == this->roomNum)
+		if (en->getRoomNumber() != -1 && en->getRoomNumber() == this->roomNum)
 			return true;
 
 	return false;

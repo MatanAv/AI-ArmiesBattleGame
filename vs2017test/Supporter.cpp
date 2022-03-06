@@ -92,11 +92,9 @@ void Supporter::FillMedkitStock(int maze[MSZ][MSZ], Room* med_rooms[NUM_MED_ROOM
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	UpdateNextSupporterStep(maze, next);
 
-	if (row == trow && col == tcol)
+	if (next->getRow() == trow && next->getCol() == tcol)
 	{
 		num_medkits = MAX_MEDKITS;
 		cout << "Player " << this->id << " from team " << this->team << " has taken a medkit\n";
@@ -117,11 +115,9 @@ void Supporter::FillAmmoStock(int maze[MSZ][MSZ], Room* ammo_rooms[NUM_AMMO_ROOM
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	UpdateNextSupporterStep(maze, next);
 
-	if (row == trow && col == tcol)
+	if (next->getRow() == trow && next->getCol() == tcol)
 	{
 		num_ammo = MAX_AMMO;
 		cout << "Player " << this->id << " from team " << this->team << " has taken an ammo\n";
@@ -134,6 +130,8 @@ void Supporter::ProvideAmmoToSoldier(int maze[MSZ][MSZ], Soldier* sd, double sec
 	int trow = sd->getRow(), tcol = sd->getCol();
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
+
+	UpdateNextSupporterStep(maze, next);
 
 	if (next->getRow() == trow && next->getCol() == tcol)
 	{
@@ -154,6 +152,8 @@ void Supporter::ProvideMedkitToSoldier(int maze[MSZ][MSZ], Soldier* sd, double s
 	int trow = sd->getRow(), tcol = sd->getCol();
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
+
+	UpdateNextSupporterStep(maze, next);
 
 	if (next->getRow() == trow && next->getCol() == tcol)
 	{
@@ -222,30 +222,39 @@ bool Supporter::CheckIfSoldierNeedAmmo(vector<Soldier*>& teammates)
 
 void Supporter::FollowTeammates(int maze[MSZ][MSZ], vector<Soldier*>& soldiers, double security_map[MSZ][MSZ])
 {
-	Cell* next;
-	int trow = 0, tcol = 0;
+	Cell* next, c;
+	int trow = soldiers.front()->getRow(), tcol = soldiers.front()->getCol();
 
-	for (auto &s : soldiers)
+	if (roomNum != -1) // if not in a tunnel -> find random cell to reach, which closest to teammates
 	{
-		trow += s->getRow();
-		tcol += s->getCol();
-	}
-	 
-	// Target is the average cell, between all of the soldiers
-	trow /= NUM_SOLDIERS;
-	tcol /= NUM_SOLDIERS;
+		priority_queue <Cell, vector<Cell>, CompareCells> followTeam_pq;
 
-	if (maze[(int)trow][(int)tcol] != SPACE)
-		for (auto& s : soldiers)
-			if (s->getSoldierType() == AGGRESSIVE)
-			{
-				trow = s->getRow();
-				tcol = s->getCol();
-			}
+		while (followTeam_pq.size() < 3)
+		{
+			int x, y;
+			do {
+				RandomizePointByRadius(maze, &y, &x, 30);
+			} while (maze[y][x] != SPACE);
+			
+			followTeam_pq.push(*(new Cell(y, x, trow, tcol, 0, nullptr)));
+		}
+
+		c = followTeam_pq.top();
+		trow = c.getRow(), tcol = c.getCol();
+	}
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 	
-	// Update new player's location
-	row = next->getRow();
-	col = next->getCol();
+	UpdateNextSupporterStep(maze, next);
+}
+
+void Supporter::UpdateNextSupporterStep(int maze[MSZ][MSZ], Cell* next)
+{
+	if (maze[next->getRow()][next->getCol()] == SPACE ||
+		maze[next->getRow()][next->getCol()] == AMMO ||
+		maze[next->getRow()][next->getCol()] == MED)
+	{
+		row = next->getRow();
+		col = next->getCol();
+	}
 }

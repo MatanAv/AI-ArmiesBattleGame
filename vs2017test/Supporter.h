@@ -24,6 +24,7 @@ private:
     bool CheckIfSoldierNeedHP(vector<Soldier*>& teammates);
     bool CheckIfSoldierNeedAmmo(vector<Soldier*>& teammates);
     Soldier* GetProvidedSoldier(vector<Soldier*>& teammates);
+    void UpdateNextSupporterStep(int maze[MSZ][MSZ], Cell* next);
 public:
     Supporter();
     ~Supporter();
