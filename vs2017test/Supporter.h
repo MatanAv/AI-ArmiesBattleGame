@@ -21,6 +21,7 @@ private:
     int num_medkits;
     int soldierToProvide;
     int itemProvided;
+    bool isLastSurvivor;
     bool CheckIfSoldierNeedHP(vector<Soldier*>& teammates);
     bool CheckIfSoldierNeedAmmo(vector<Soldier*>& teammates);
     Soldier* GetProvidedSoldier(vector<Soldier*>& teammates);
@@ -32,6 +33,7 @@ public:
     int getAmmo() { return num_ammo; }
     int getMedkits() { return num_medkits; }
     int getSoldierProvided() { return soldierToProvide; }
+    void setIsLastSurvivor(bool isLast) { isLastSurvivor = isLast; }
     void setAmmo(int ammo) { num_ammo = ammo; }
     void setMedkits(int meds) { num_medkits = meds; }
     void setSoldierProvided(int id) { soldierToProvide = id; }

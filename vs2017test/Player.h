@@ -21,7 +21,7 @@ protected:
 	Cell* DistanceFromStartAStar(int curr_row, int curr_col, int trow, int tcol, int maze[MSZ][MSZ],
 		double security_map[MSZ][MSZ]);
 	Cell* RestorePath(Cell* pCurrent, int start_row, int start_col);
-	double CalculateG_BySecurityCost(Cell* pCurrent, double security_map[MSZ][MSZ], int nrow, int ncol);
+	double G_BySecurityCost(Cell* pCurrent, int nrow, int ncol);
 	bool CheckEnemyInSameRoom(vector<Player*> enemies);
 	void CheckStepsDirection(int maze[MSZ][MSZ], int c_row, int c_col, bool* up, bool* down,
 		bool* right, bool* left);

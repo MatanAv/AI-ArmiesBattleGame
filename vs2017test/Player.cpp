@@ -31,7 +31,6 @@ Player::Player(int team, int id)
 }
 
 // TODO: Try A* to consider enemy distance
-// TODO: May should be private
 void Player::Hide(int maze[MSZ][MSZ], double security_map[MSZ][MSZ])
 {
 	Cell* next, c;
@@ -98,16 +97,16 @@ Cell* Player::DistanceFromStartAStar(int curr_row, int curr_col, int trow, int t
 
 		if (up)
 			CheckNeighbor(pCurrent, curr_row - 1, curr_col, pq, grays, blacks,
-				CalculateG_BySecurityCost(pCurrent, security_map, curr_row - 1, curr_col), security_map);
+				G_BySecurityCost(pCurrent, curr_row - 1, curr_col), security_map);
 		if (down)
 			CheckNeighbor(pCurrent, curr_row + 1, curr_col, pq, grays, blacks,
-				CalculateG_BySecurityCost(pCurrent, security_map, curr_row + 1, curr_col), security_map);
+				G_BySecurityCost(pCurrent, curr_row + 1, curr_col), security_map);
 		if (right)
 			CheckNeighbor(pCurrent, curr_row, curr_col + 1, pq, grays, blacks,
-				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col + 1), security_map);
+				G_BySecurityCost(pCurrent, curr_row, curr_col + 1), security_map);
 		if (left)
 			CheckNeighbor(pCurrent, curr_row, curr_col - 1, pq, grays, blacks,
-				CalculateG_BySecurityCost(pCurrent, security_map, curr_row, curr_col - 1), security_map);
+				G_BySecurityCost(pCurrent, curr_row, curr_col - 1), security_map);
 	}
 }
 
@@ -188,18 +187,15 @@ Cell* Player::RestorePath(Cell* pCurrent, int start_row, int start_col)
 	return pCurrent;	// returns the next step
 }
 
-double Player::CalculateG_BySecurityCost(Cell* pCurrent, double security_map[MSZ][MSZ], int nrow, int ncol)
+double Player::G_BySecurityCost(Cell* pCurrent, int nrow, int ncol)
 {
-	// G is composed by distance from starting point
-	// Plus the cost of not secured cell
-	//double security_cost = -log(security_map[nrow][ncol] + 0.01);	// punishing unsecured cells with ln function
-	//double security_cost = pCurrent->getSecurityLevel();
-	double neighbor_g = pCurrent->getG() + 1;	// distance from starting point + 1
+	// G is composed by distance from starting point + cost of insecured cell
+	double security_cost = exp(pCurrent->getSecurityLevel());	// punishing insecured cells with exp function
+	double neighbor_g = pCurrent->getG() + 1;
 
-	//return neighbor_g + (0.05 * security_cost);
-	return neighbor_g;
-	//return security_cost;
-	//return 0;
+	if (this->task == HIDE)	
+		return neighbor_g + 1.5 * security_cost;	// Security is more prioritized
+	else return neighbor_g + 1 * security_cost;	// Security is less prioritized
 }
 
 void Player::UpdateMinDistCoordinates(int y, int x, int yy, int xx, int* trow, int* tcol, double* minDist)

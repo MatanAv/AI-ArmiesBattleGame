@@ -8,7 +8,6 @@ const int MAX_GRENADES = 3;
 const int AGGRESSIVE = 0;
 const int COVERING = 1;
 
-// Todo: Try different combinations
 // Low weight --> more cautious, High weight --> more risky
 const double AGGRESSIVE_HP_W = 0.7;
 const double AGGRESSIVE_AMMO_W = 0.7;
@@ -79,5 +78,5 @@ public:
         bool visibillity_map[MSZ][MSZ]);
     void GetCloserToEnemy(int maze[MSZ][MSZ], double security_map[MSZ][MSZ]);
     Bullet* ShootBullet();
-    Grenade* ThrowGrenade();
+    Bullet* ThrowGrenade();
 };

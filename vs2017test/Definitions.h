@@ -38,6 +38,7 @@ const int SUB_ROOM_SIZE = 5;
 
 // Ammo & Medkits
 const int NUM_STOCK = 3;
+const double GRENADE_MAX_DIST = 6.0;
 
 // Teams
 const int RED = 0;

@@ -102,10 +102,10 @@ void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier*>& sol
 	{
 		priority_queue <Cell, vector<Cell>, CompareCells> followTeam_pq;
 
-		while (followTeam_pq.size() < 3)
+		while (followTeam_pq.size() < 15)
 		{
 			int x, y;
-			RandomizePointByRadius(maze, &y, &x, 20);
+			RandomizePointByRadius(maze, &y, &x, 8);
 			followTeam_pq.push(*(new Cell(y, x, trow, tcol, 0, nullptr)));
 		}
 
@@ -133,11 +133,14 @@ void Soldier::SearchTheEnemies(int maze[MSZ][MSZ], Room* rooms[NUM_ROOMS], vecto
 			if (en->getRoomNumber() != -1)
 				enemyInRoom = true;
 
-	// if enemy not in tunnel, chase him, else - go to another room
+	// if enemy not in tunnel, chase him, else -> randomize point
 	if (!enemyInRoom)
-		FindClosestRoom(&trow, &tcol, rooms);
+		RandomizePointByRadius(maze, &trow, &tcol, 10);
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
+
+	if (CalculateEuclideanDistance(row, col, trow, tcol) < 2)	// So he won't block the soldier
+		return;
 
 	UpdateNextSoldierStep(maze, next);
 }
@@ -151,7 +154,7 @@ void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room
 	double grenade_per = num_grenades / MAX_GRENADES;
 	double dist_per;	// low percent means closer
 	double is_visible;
-	
+
 	if (hp_per < 0.4 && !needMedkit)
 		CallForMedkit();
 	if (ammo_per < 0.35 && !needAmmo)
@@ -178,15 +181,6 @@ void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room
 		is_visible *= CAUTIOUS_VISIBLE_W;
 		grenade_per *= CAUTIOUS_GRENADES_W;
 	}
-
-	// Todo: Try combinations
-	
-	// 0.2 0.5 0.3 1
-	// w = { 0.6 0.66 0.7 } --> 0.12 0.33 0.198
-	// Closer = 3.737	Attack = 4.137	 Hide = 4.848
-
-	// w = { 0.5 0.5 0.66 } --> 0.375 0.4 0.325
-	// Closer = 3.737	Attack = 4.137	 Hide = 4.848
 
 	double getCloser_rate = exp(hp_per) + exp(ammo_per) + exp(dist_per);
 	double attack_rate = exp(hp_per) + exp(ammo_per) + (-log(dist_per)) + is_visible + grenade_per;
@@ -249,14 +243,14 @@ Bullet* Soldier::ShootBullet()
 	return pb;
 }
 
-Grenade* Soldier::ThrowGrenade()
+// Throwing animation is a bullet
+Bullet* Soldier::ThrowGrenade()
 {
-	Grenade* pg = new Grenade(enemy_row, enemy_col, 
-		new Bullet(col, row, CalculateDirectedAngle(row, col, enemy_row, enemy_col), this->team));
-	pg->setIsExploded(true);
+	Bullet* pb = new Bullet(col, row, CalculateDirectedAngle(row, col, enemy_row, enemy_col), this->team);
+	pb->setIsFired(true);
 	num_grenades--;
 
-	return pg;
+	return pb;
 }
 
 void Soldier::FindClosestEnemyInMap(int *trow, int *tcol, vector<Player*>& enemies)

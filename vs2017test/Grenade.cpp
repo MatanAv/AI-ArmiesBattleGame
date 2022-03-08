@@ -11,17 +11,15 @@ Grenade::Grenade(double x, double y)
 	isExploded = false;
 }
 
-Grenade::Grenade(double x, double y, Bullet* pre)
+Grenade::Grenade(double x, double y, int thrower_color)
 {
 	int i;
 	double angle,teta = 2*3.14/NUM_BULLETS;
 
 	for (i = 0, angle = 0; i < NUM_BULLETS; i++,angle += teta) 
-		bullets[i] = new Bullet(x, y,angle, pre->getShooterTeam());
+		bullets[i] = new Bullet(x, y, angle, thrower_color);
 
 	isExploded = false;
-	pre_explosion = pre;
-	this->thrower_color = pre->getShooterTeam();
 }
 
 Grenade::~Grenade()

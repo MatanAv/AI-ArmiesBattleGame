@@ -25,12 +25,14 @@ public:
 	int getHitRow() { return hit_row; }
 	int getHitCol() { return hit_col; }
 	int getShooterTeam() { return shooterTeam; }
-	double getHitDamage() { return hitDamage; }
+	int getX() { return (int)x; }
+	int getY() { return (int)y; }
+	double getHitDamage() { return hitDamage; } 
 	void move(int maze[MSZ][MSZ]);
 	void setIsFired(bool status) { is_fired = status; }
 	void show();
 	void SimulateFire(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], double damage);
-	void moveGrenadeBullet(int maze[MSZ][MSZ], int trow, int tcol);
+	void moveGrenadeBullet(int maze[MSZ][MSZ]);
 	bool SimulateFireOnTarget(int maze[MSZ][MSZ], int trow, int tcol);
 };
 

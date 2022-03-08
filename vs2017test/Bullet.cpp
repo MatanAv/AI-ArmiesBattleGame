@@ -78,7 +78,7 @@ void Bullet::move(int maze[MSZ][MSZ])
 		is_fired = false;
 	if (is_fired)
 	{
-		double speed = 0.1;
+		double speed = 0.3;
 		double dx, dy;
 		dx = cos(angle_direction);
 		dy = sin(angle_direction);
@@ -88,9 +88,9 @@ void Bullet::move(int maze[MSZ][MSZ])
 	}
 }
 
-void Bullet::moveGrenadeBullet(int maze[MSZ][MSZ], int trow, int tcol)
+void Bullet::moveGrenadeBullet(int maze[MSZ][MSZ])
 {
-	if (x == tcol && y == trow)
+	if (CalculateEuclideanDistance(start_row, start_col, (int)y, (int)x) >= GRENADE_MAX_DIST)
 		is_fired = false;	// Then grenade explodes
 	if (is_fired)
 	{

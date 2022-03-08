@@ -24,11 +24,9 @@ void CreateSubRooms();
 void CreateSecurityMap();
 void InitTeams();
 
-void HandleBulletHit(Bullet* pb);
-void HandleGrenadeHit(Grenade* pg);
-
-vector<Bullet*> bullets;
-vector<Grenade*> grenades;
+Bullet* pb = nullptr;
+Bullet* pre_explosion = nullptr;
+Grenade* pg = nullptr;
 
 Player* red_team[NUM_PLAYERS];
 Player* blue_team[NUM_PLAYERS];
@@ -116,7 +114,7 @@ void InitRooms()
 void InitObstacles()
 {
 	// set random obstacles
-	for (int i = 0; i < 200; i++)
+	for (int i = 0; i < 300; i++)
 	{
 		int x = rand() % MSZ, y = rand() % MSZ;
 		// Validate it isn't a border
@@ -253,18 +251,22 @@ void InitTeams()
 	for (int i = 0; i < NUM_PLAYERS; i++)
 	{
 		if (i < NUM_SOLDIERS)
+		{
 			if (i < NUM_AGGRESSIVE_SOLDIERS)
 			{
 				red_team[i] = new Soldier(RED, i + 1, AGGRESSIVE);
 				blue_team[i] = new Soldier(BLUE, i + 1, AGGRESSIVE);
-				red_soldiers.push_back((Soldier*)red_team[i]);
-				blue_soldiers.push_back((Soldier*)blue_team[i]);
+
 			}
 			else
 			{
 				red_team[i] = new Soldier(RED, i + 1, COVERING);
 				blue_team[i] = new Soldier(BLUE, i + 1, COVERING);
 			}
+
+			red_soldiers.push_back((Soldier*)red_team[i]);
+			blue_soldiers.push_back((Soldier*)blue_team[i]);
+		}
 		else
 		{
 			red_team[i] = new Supporter(RED, i + 1);
@@ -526,16 +528,6 @@ void CreateVisibillityMapForPlayer(Soldier* sd, bool visibillity_map[MSZ][MSZ])
 				visibillity_map[i][j] = CheckIfCellOnTarget(sd->getRow(), sd->getCol(), i, j);
 }
 
-// In case every aggressive soldiers are dead -> change any cautious soldier to aggressive
-void ChangeCautiousToAggressive(vector<Soldier*> team_soldiers)
-{
-	for (auto& s : team_soldiers)
-		if (s->getSoldierType() == AGGRESSIVE)
-			return;
-
-	team_soldiers.front()->setSoldierType(AGGRESSIVE);
-}
-
 bool IsStockEmpty()
 {
 	for (int i = 0; i < NUM_MED_ROOMS; i++)
@@ -551,21 +543,32 @@ bool IsStockEmpty()
 
 bool CheckInsideARoom(Player* p, Room* r)
 {
-	return p->getRow() < r->getCenterRow() + (r->getH() / 2) &&
-		p->getRow() > r->getCenterRow() - (r->getH() / 2) && 
-		p->getCol() < r->getCenterCol() + (r->getW() / 2) &&
-		p->getCol() > r->getCenterCol() - (r->getW() / 2);
+	return p->getRow() <= r->getCenterRow() + (r->getH() / 2) &&
+		p->getRow() >= r->getCenterRow() - (r->getH() / 2) && 
+		p->getCol() <= r->getCenterCol() + (r->getW() / 2) &&
+		p->getCol() >= r->getCenterCol() - (r->getW() / 2);
 }
 
-void UpdatePlayerRoom(Player* p)	// TODO: turn to single player
+void UpdatePlayerRoom(Player* p)
 {
-	// First, resetting player's room to -1
-	p->setRoomNumber(-1);
-	// Second - check each room, if the player is in the room it will be updated
-	// else -> he is in a tunnel so it will stay on -1
-	for (int i = 0; i < NUM_ROOMS; i++)
+	p->setRoomNumber(-1);	// First, resetting player's room to -1
+	// Now check each room, if the player is in the room it will be updated, else -> -1 means in tunnel
+	for (int i = 0; i < NUM_ROOMS && p->getRoomNumber() == -1; i++)
 		if (CheckInsideARoom(p, rooms[i]))
+		{
 			p->setRoomNumber(i);
+			return;
+		}
+}
+
+// In case every aggressive soldiers are dead -> change any cautious soldier to aggressive
+void ChangeCautiousToAggressive(vector<Soldier*> team_soldiers)
+{
+	for (auto& s : team_soldiers)
+		if (s->getSoldierType() == AGGRESSIVE)
+			return;
+
+	team_soldiers.front()->setSoldierType(AGGRESSIVE);
 }
 
 void MakeSupporterStep(Supporter* sp, vector <Soldier*>& teammates, vector<Player*> enemies)
@@ -667,10 +670,10 @@ void MakeSoldierStep(Soldier* sd, vector <Soldier*>& team_soldiers, Supporter* t
 			sd->RunAway(maze, rooms, security_map);
 			break;
 		case SHOOT_BULLET:
-			bullets.push_back(sd->ShootBullet());
+			pb = sd->ShootBullet();
 			break;
 		case THROW_GRENADE:
-			grenades.push_back(sd->ThrowGrenade());
+			pre_explosion = sd->ThrowGrenade();
 			break;
 		case HIDE:
 			sd->Hide(maze, security_map);
@@ -685,34 +688,8 @@ void MakeSoldierStep(Soldier* sd, vector <Soldier*>& team_soldiers, Supporter* t
 		else
 			maze[sd->getRow()][sd->getCol()] = BLUE_SOLDIER;
 
-		maze[prev_row][prev_col] = SPACE;	// TODO: FIX SOLDIER MOVE TO AMMO/MED
+		maze[prev_row][prev_col] = SPACE;
 	}
-}
-
-// Move bullets
-void HandleBulletsFiring()
-{
-	for (auto& pb : bullets)
-		if (pb->getIsFired())
-		{
-			pb->move(maze);
-			if (!pb->getIsFired())
-				HandleBulletHit(pb);
-		}
-}
-
-// Move grenades
-void HandleGrenadeExplosion()
-{
-	for (auto& pg : grenades)
-		if (pg->getIsExploded())
-			if (pg->getPreExplosionBullet()->getIsFired())
-				pg->getPreExplosionBullet()->moveGrenadeBullet(maze, pg->getX(), pg->getY());
-			else
-			{
-				pg->explode(maze);
-				HandleGrenadeHit(pg);
-			}
 }
 
 void HandleBulletHit(Bullet* pb)
@@ -765,29 +742,43 @@ void HandleGrenadeHit(Grenade* pg)
 			HandleBulletHit(g_bullets[i]);
 }
 
-void UpdateBulletsAndGrenadesState()
+// Move bullets
+void HandleBulletsFiring()
 {
-	vector<Bullet*> new_bullets;
-	vector<Grenade*> new_grenades;
-
-	// Remove hitted bullets & grenades
-	for (auto& pb : bullets)
-		if (pb->getIsFired())
-			new_bullets.push_back(pb);
-	for (auto& pg : grenades)
-		if (pg->getIsExploded())
-			new_grenades.push_back(pg);
-
-	// Update new bullets & grenades state
-	bullets = new_bullets;
-	grenades = new_grenades;
+	if (pb && pb->getIsFired())
+	{
+		pb->move(maze);
+		HandleBulletHit(pb);
+		if (!pb->getIsFired())
+			pb = nullptr;
+	}
+}
+// Move grenades
+void HandleGrenadeExplosion()
+{
+	if (pre_explosion != nullptr && pre_explosion->getIsFired())
+	{
+		pre_explosion->moveGrenadeBullet(maze);
+		if (!pre_explosion->getIsFired())
+		{
+			pg = new Grenade(pre_explosion->getX(), pre_explosion->getY(), pre_explosion->getShooterTeam());
+			pg->setIsExploded(true);
+			pre_explosion = nullptr;
+		}
+	}
+	else if (pg && pg->getIsExploded())
+	{
+		pg->explode(maze);
+		HandleGrenadeHit(pg);
+		if (!pg->getIsExploded())
+			pg = nullptr;
+	}
 }
 
 void HandleAttacks()
 {
 	HandleBulletsFiring();
 	HandleGrenadeExplosion();
-	UpdateBulletsAndGrenadesState();
 }
 
 void CheckIfAnyTeamWins()
@@ -813,13 +804,13 @@ void CheckIfAnyTeamWins()
 	}
 	else if (!anyRedAlive)
 	{
-		cout << "Blue team has won the game!";
+		cout << "Blue team have won the game!";
 		startGame = false;
 		return;
 	}
 	else
 	{
-		cout << "Red team has won the game!";
+		cout << "Red team have won the game!";
 		startGame = false;
 		return;
 	}
@@ -870,12 +861,7 @@ void HandlePlayersTurns()
 
 void RunGameFlow()
 {
-	// TODO: HANDLE SITUATION WHEN SUPPORTER IS DEAD OR THE ONLY ONE THAT ALIVE
 	HandlePlayersTurns();
-	HandleAttacks();
-
-	ChangeCautiousToAggressive(red_soldiers);
-	ChangeCautiousToAggressive(blue_soldiers);
 
 	if (IsStockEmpty())
 		RefillStock();
@@ -883,6 +869,43 @@ void RunGameFlow()
 	CheckIfAnyTeamWins();
 }
 
+void UpdatePlayersState()
+{
+	vector<Player*> new_reds;
+	vector<Player*> new_blues;
+	vector<Soldier*> new_red_soldiers;
+	vector<Soldier*> new_blue_soldiers;
+
+	for (int i = 0; i < NUM_PLAYERS; i++)
+	{
+		if (red_team[i]->getIsAlive())
+			new_reds.push_back(red_team[i]);
+		if (blue_team[i]->getIsAlive())
+			new_blues.push_back(blue_team[i]);
+	}
+
+	for (auto& sd : red_soldiers)
+		if (sd->getIsAlive())
+			new_red_soldiers.push_back(sd);
+	for (auto& sd : blue_soldiers)
+		if (sd->getIsAlive())
+			new_blue_soldiers.push_back(sd);
+
+	if (!new_red_soldiers.empty())
+		ChangeCautiousToAggressive(new_red_soldiers);
+	else
+		red_supporter->setIsLastSurvivor(true);
+
+	if (!new_blue_soldiers.empty())
+		ChangeCautiousToAggressive(new_blue_soldiers);
+	else
+		blue_supporter->setIsLastSurvivor(true);
+
+	reds_vec = new_reds;
+	blues_vec = new_blues;
+	red_soldiers = new_red_soldiers;
+	blue_soldiers = new_blue_soldiers;
+}
 
 
 void display()
@@ -891,14 +914,12 @@ void display()
 
 	ShowMaze();
 
-	for (auto& pb : bullets)
+	// Show Bullet
+	if (pb != nullptr)
 		pb->show();
-
-	for (auto& pg : grenades)
-		if (pg->getPreExplosionBullet()->getIsFired())
-			pg->getPreExplosionBullet()->show();
-		else
-			pg->show();
+	// Show Grenade
+	if (pg  != nullptr)
+		pg->show();
 
 	glutSwapBuffers(); // show all
 }
@@ -906,10 +927,14 @@ void display()
 // runs all the time in the background
 void idle()
 {
-	if (startGame)
+	if (pb || pg)
+		HandleAttacks();
+	else if (startGame)
 		RunGameFlow();
 
-	Sleep(50);
+	UpdatePlayersState();
+
+	Sleep(10);
 
 	glutPostRedisplay(); // indirect call to display
 }

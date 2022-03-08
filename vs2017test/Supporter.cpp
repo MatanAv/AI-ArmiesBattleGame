@@ -14,6 +14,7 @@ Supporter::Supporter(int team, int id) : Player(team, id)
 	num_medkits = MAX_MEDKITS;
 	soldierToProvide = -1;
 	itemProvided = -1;
+	isLastSurvivor = false;
 }
 
 Soldier* Supporter::GetProvidedSoldier(vector<Soldier*>& teammates)
@@ -59,6 +60,8 @@ void Supporter::CalculateTask(vector<Player*>& enemies, vector<Soldier*>& teamma
 		task = USE_MEDKIT;
 	else if (num_medkits == 0)
 		task = FILL_MEDKIT_STOCK;
+	else if (isLastSurvivor)
+		task = HIDE;
 	else if (CheckEnemyInSameRoom(enemies))
 		task = SUPPORTER_BATTLE_MODE;
 	else if (CheckIfSoldierNeedHP(teammates))
@@ -229,10 +232,10 @@ void Supporter::FollowTeammates(int maze[MSZ][MSZ], vector<Soldier*>& soldiers, 
 	{
 		priority_queue <Cell, vector<Cell>, CompareCells> followTeam_pq;
 
-		while (followTeam_pq.size() < 3)
+		while (followTeam_pq.size() < 15)
 		{
 			int x, y;
-			RandomizePointByRadius(maze, &y, &x, 20);
+			RandomizePointByRadius(maze, &y, &x, 15);
 			followTeam_pq.push(*(new Cell(y, x, trow, tcol, 0, nullptr)));
 		}
 
@@ -242,6 +245,9 @@ void Supporter::FollowTeammates(int maze[MSZ][MSZ], vector<Soldier*>& soldiers, 
 
 	next = DistanceFromStartAStar(this->row, this->col, trow, tcol, maze, security_map);
 	
+	if (CalculateEuclideanDistance(row, col, trow, tcol) < 2)	// So he won't block the player
+		return;
+
 	UpdateNextSupporterStep(maze, next);
 }
 
