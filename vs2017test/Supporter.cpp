@@ -232,10 +232,7 @@ void Supporter::FollowTeammates(int maze[MSZ][MSZ], vector<Soldier*>& soldiers, 
 		while (followTeam_pq.size() < 3)
 		{
 			int x, y;
-			do {
-				RandomizePointByRadius(maze, &y, &x, 30);
-			} while (maze[y][x] != SPACE);
-			
+			RandomizePointByRadius(maze, &y, &x, 20);
 			followTeam_pq.push(*(new Cell(y, x, trow, tcol, 0, nullptr)));
 		}
 

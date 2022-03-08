@@ -32,6 +32,14 @@ vector<Grenade*> grenades;
 
 Player* red_team[NUM_PLAYERS];
 Player* blue_team[NUM_PLAYERS];
+vector<Player*> reds_vec;
+vector<Soldier*> red_soldiers;
+vector<Player*> blues_vec;
+vector<Soldier*> blue_soldiers;
+Supporter* red_supporter;
+Supporter* blue_supporter;
+
+int player_turn = 0;
 
 bool startGame = false;
 
@@ -245,23 +253,28 @@ void InitTeams()
 	for (int i = 0; i < NUM_PLAYERS; i++)
 	{
 		if (i < NUM_SOLDIERS)
-		{
 			if (i < NUM_AGGRESSIVE_SOLDIERS)
 			{
 				red_team[i] = new Soldier(RED, i + 1, AGGRESSIVE);
 				blue_team[i] = new Soldier(BLUE, i + 1, AGGRESSIVE);
+				red_soldiers.push_back((Soldier*)red_team[i]);
+				blue_soldiers.push_back((Soldier*)blue_team[i]);
 			}
 			else
 			{
 				red_team[i] = new Soldier(RED, i + 1, COVERING);
 				blue_team[i] = new Soldier(BLUE, i + 1, COVERING);
 			}
-		}
 		else
 		{
 			red_team[i] = new Supporter(RED, i + 1);
 			blue_team[i] = new Supporter(BLUE, i + 1);
+			red_supporter = (Supporter*)red_team[i];
+			blue_supporter = (Supporter*)blue_team[i];
 		}
+
+		reds_vec.push_back(red_team[i]);
+		blues_vec.push_back(blue_team[i]);
 	}
 
 	// Placing them in a rooms
@@ -270,8 +283,6 @@ void InitTeams()
 	r = rand() % NUM_ROOMS;
 	PlaceInRooms(r, false);
 }
-
-
 
 
 void RestorePath(Cell* pCurrent,int start_row, int start_col)
@@ -451,6 +462,9 @@ void ShowMaze()
 			case BLUE_SUPPORTER:
 				glColor3d(0.3, 0.7, 1);	// set color LIGHT BLUE
 				break;
+			case DEAD:
+				glColor3d(0.33, 0.33, 0.33);	// set color GRAY
+				break;
 			} // switch
 			// now show the cell of maze
 			glBegin(GL_POLYGON);
@@ -522,7 +536,7 @@ void ChangeCautiousToAggressive(vector<Soldier*> team_soldiers)
 	team_soldiers.front()->setSoldierType(AGGRESSIVE);
 }
 
-bool CheckIfStockIsEmpty()
+bool IsStockEmpty()
 {
 	for (int i = 0; i < NUM_MED_ROOMS; i++)
 		if (maze[med_rooms[i]->getCenterRow()][med_rooms[i]->getCenterCol()] == MED)
@@ -543,25 +557,15 @@ bool CheckInsideARoom(Player* p, Room* r)
 		p->getCol() > r->getCenterCol() - (r->getW() / 2);
 }
 
-void UpdatePlayersRoomLocation()
+void UpdatePlayerRoom(Player* p)	// TODO: turn to single player
 {
-	// First - resetting each player's room to -1
-	for (int i = 0; i < NUM_PLAYERS; i++)
-	{
-		red_team[i]->setRoomNumber(-1);
-		blue_team[i]->setRoomNumber(-1);
-	}
-
-	// Second - running on each room, if player[j] in a room it will be updated
+	// First, resetting player's room to -1
+	p->setRoomNumber(-1);
+	// Second - check each room, if the player is in the room it will be updated
 	// else -> he is in a tunnel so it will stay on -1
 	for (int i = 0; i < NUM_ROOMS; i++)
-		for (int j = 0; j < NUM_PLAYERS; j++)
-		{
-			if (CheckInsideARoom(red_team[j], rooms[i]))
-				red_team[j]->setRoomNumber(i);
-			if (CheckInsideARoom(blue_team[j], rooms[i]))
-				blue_team[j]->setRoomNumber(i);
-		}
+		if (CheckInsideARoom(p, rooms[i]))
+			p->setRoomNumber(i);
 }
 
 void MakeSupporterStep(Supporter* sp, vector <Soldier*>& teammates, vector<Player*> enemies)
@@ -685,65 +689,6 @@ void MakeSoldierStep(Soldier* sd, vector <Soldier*>& team_soldiers, Supporter* t
 	}
 }
 
-void RunGameFlow()
-{
-	vector<Player*> reds_vec;
-	vector<Soldier*> red_soldiers;
-	Supporter* red_supporter = nullptr;
-	vector<Player*> blues_vec;
-	vector<Soldier*> blue_soldiers;
-	Supporter* blue_supporter = nullptr;
-
-	for (int i = 0; i < NUM_PLAYERS; i++)
-	{
-		if (i < NUM_SOLDIERS)
-		{
-			if (red_team[i]->getIsAlive())
-				red_soldiers.push_back((Soldier*)red_team[i]);
-			if (blue_team[i]->getIsAlive())
-				blue_soldiers.push_back((Soldier*)blue_team[i]);
-		}
-		else
-		{
-			if (red_team[i]->getIsAlive())
-				red_supporter = (Supporter*)red_team[i];
-			if (blue_team[i]->getIsAlive())
-				blue_supporter = (Supporter*)blue_team[i];
-		}
-
-		if (red_team[i]->getIsAlive())
-			reds_vec.push_back(red_team[i]);
-		if (blue_team[i]->getIsAlive())
-			blues_vec.push_back(blue_team[i]);
-	}
-
-	ChangeCautiousToAggressive(red_soldiers);
-	ChangeCautiousToAggressive(blue_soldiers);
-
-	// TODO: HANDLE SITUATION WHEN SUPPORTER IS DEAD OR THE ONLY ONE THAT ALIVE
-
-	if (red_supporter != nullptr)
-		MakeSupporterStep(red_supporter, red_soldiers, blues_vec);
-
-	if (blue_supporter != nullptr)
-		MakeSupporterStep(blue_supporter, blue_soldiers, reds_vec);
-
-	for (auto& sd : red_soldiers)
-		if (sd->getSoldierType() == AGGRESSIVE)
-			MakeSoldierStep(sd, red_soldiers, red_supporter, blues_vec);
-
-	for (auto& sd : blue_soldiers)
-		if (sd->getSoldierType() == AGGRESSIVE)
-			MakeSoldierStep(sd, blue_soldiers, blue_supporter, reds_vec);
-
-	UpdatePlayersRoomLocation();
-
-	if (CheckIfStockIsEmpty())
-		RefillStock();
-}
-
-
-
 // Move bullets
 void HandleBulletsFiring()
 {
@@ -775,7 +720,9 @@ void HandleBulletHit(Bullet* pb)
 	int h_row = pb->getHitRow(), h_col = pb->getHitCol();
 
 	if (h_row > -1)	// Bullet hits a player
-		if (pb->getShooterTeam() == RED)
+	{
+		if (pb->getShooterTeam() == BLUE)
+		{
 			for (int i = 0; i < NUM_PLAYERS; i++)
 				if (red_team[i]->getRow() == h_row && red_team[i]->getCol() == h_col)
 				{
@@ -784,11 +731,14 @@ void HandleBulletHit(Bullet* pb)
 					if (red_team[i]->getHP() <= 0)
 					{
 						red_team[i]->setIsAlive(false);
+						maze[red_team[i]->getRow()][red_team[i]->getCol()] = DEAD;
 						cout << "Player " << red_team[i]->getId() << " from red team is dead!\n";
 					}
 					return;
 				}
+		}
 		else
+		{
 			for (int i = 0; i < NUM_PLAYERS; i++)
 				if (blue_team[i]->getRow() == h_row && blue_team[i]->getCol() == h_col)
 				{
@@ -797,10 +747,13 @@ void HandleBulletHit(Bullet* pb)
 					if (blue_team[i]->getHP() <= 0)
 					{
 						blue_team[i]->setIsAlive(false);
+						maze[blue_team[i]->getRow()][blue_team[i]->getCol()] = DEAD;
 						cout << "Player " << blue_team[i]->getId() << " from blue team is dead!\n";
 					}
 					return;
 				}
+		}
+	}
 }
 
 void HandleGrenadeHit(Grenade* pg)
@@ -828,6 +781,13 @@ void UpdateBulletsAndGrenadesState()
 	// Update new bullets & grenades state
 	bullets = new_bullets;
 	grenades = new_grenades;
+}
+
+void HandleAttacks()
+{
+	HandleBulletsFiring();
+	HandleGrenadeExplosion();
+	UpdateBulletsAndGrenadesState();
 }
 
 void CheckIfAnyTeamWins()
@@ -865,6 +825,64 @@ void CheckIfAnyTeamWins()
 	}
 }
 
+void HandlePlayersTurns()
+{
+	Player* p = nullptr;
+
+	switch (player_turn)
+	{
+	case 0:	// Red Soldier (aggressive)
+		p = red_team[0];	
+		if (p->getIsAlive())
+			MakeSoldierStep((Soldier*)p, red_soldiers, red_supporter, blues_vec);
+		break;
+	case 1:	// Blue Soldier (aggressive)
+		p = blue_team[0];	
+		if (p->getIsAlive())
+			MakeSoldierStep((Soldier*)p, blue_soldiers, blue_supporter, reds_vec);
+		break;
+	case 2:	// Red Soldier (cautious)
+		p = red_team[1];	
+		if (p->getIsAlive())
+			MakeSoldierStep((Soldier*)p, red_soldiers, red_supporter, blues_vec);
+		break;
+	case 3:	// Blue Soldier (cautious)
+		p = blue_team[1];	
+		if (p->getIsAlive())
+			MakeSoldierStep((Soldier*)p, blue_soldiers, blue_supporter, reds_vec);
+		break;
+	case 4:	// Red Supporter
+		p = red_supporter;	
+		if (p->getIsAlive())
+			MakeSupporterStep(red_supporter, red_soldiers, blues_vec);
+		break;
+	case 5:	// Blue Supporter
+		p = blue_supporter;	
+		if (p->getIsAlive())
+			MakeSupporterStep(blue_supporter, blue_soldiers, reds_vec);
+		break;
+	}
+
+	if (p != nullptr) UpdatePlayerRoom(p);
+
+	player_turn == 5 ? player_turn = 0 : player_turn++;
+}
+
+void RunGameFlow()
+{
+	// TODO: HANDLE SITUATION WHEN SUPPORTER IS DEAD OR THE ONLY ONE THAT ALIVE
+	HandlePlayersTurns();
+	HandleAttacks();
+
+	ChangeCautiousToAggressive(red_soldiers);
+	ChangeCautiousToAggressive(blue_soldiers);
+
+	if (IsStockEmpty())
+		RefillStock();
+
+	CheckIfAnyTeamWins();
+}
+
 
 
 void display()
@@ -888,15 +906,8 @@ void display()
 // runs all the time in the background
 void idle()
 {
-	if (startGame && bullets.empty() && grenades.empty())
+	if (startGame)
 		RunGameFlow();
-
-	HandleBulletsFiring();
-	HandleGrenadeExplosion();
-
-	UpdateBulletsAndGrenadesState(); // Todo: Check if need to be in display or idle
-
-	CheckIfAnyTeamWins();
 
 	Sleep(50);
 

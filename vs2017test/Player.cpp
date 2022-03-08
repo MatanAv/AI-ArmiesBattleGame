@@ -42,10 +42,7 @@ void Player::Hide(int maze[MSZ][MSZ], double security_map[MSZ][MSZ])
 	while (pq_target.size() < 20)
 	{
 		int x, y;
-		do {
-			RandomizePointByRadius(maze, &y, &x, 10);
-		} while (maze[y][x] != SPACE);
-
+		RandomizePointByRadius(maze, &y, &x, 10);
 		pq_target.push(*(new Cell(y, x, security_map[y][x])));
 	}
 
@@ -230,7 +227,7 @@ void Player::RandomizePointByRadius(int maze[MSZ][MSZ], int* r_row, int* r_col, 
 		// Now this is the steps size from current supporter position
 		x += col;
 		y += row;
-	} while (maze[y][x] != SPACE);
+	} while (x > MSZ-1 || x < 0 || y > MSZ-1 || y < 0 || maze[y][x] != SPACE);
 
 	*r_row = y;
 	*r_col = x;
@@ -250,7 +247,8 @@ bool Player::CheckEnemyInSameRoom(vector<Player*> enemies)
 
 void Player::CheckStepsDirection(int maze[MSZ][MSZ], int c_row, int c_col, bool* up, bool* down, bool* right, bool* left)
 {
-	*up = c_row > 0 && maze[c_row - 1][c_col] == SPACE ||
+	*up = c_row > 0 &&
+		maze[c_row - 1][c_col] == SPACE ||
 		maze[c_row - 1][c_col] == MED ||
 		maze[c_row - 1][c_col] == AMMO ||
 		maze[c_row - 1][c_col] == RED_SOLDIER ||
@@ -258,7 +256,8 @@ void Player::CheckStepsDirection(int maze[MSZ][MSZ], int c_row, int c_col, bool*
 		maze[c_row - 1][c_col] == BLUE_SOLDIER ||
 		maze[c_row - 1][c_col] == BLUE_SUPPORTER;
 
-	*down = c_row < MSZ - 1 && maze[c_row + 1][c_col] == SPACE ||
+	*down = c_row < MSZ - 1 &&
+		maze[c_row + 1][c_col] == SPACE ||
 		maze[c_row + 1][c_col] == MED ||
 		maze[c_row + 1][c_col] == AMMO ||
 		maze[c_row + 1][c_col] == RED_SOLDIER ||
@@ -266,7 +265,8 @@ void Player::CheckStepsDirection(int maze[MSZ][MSZ], int c_row, int c_col, bool*
 		maze[c_row + 1][c_col] == BLUE_SOLDIER ||
 		maze[c_row + 1][c_col] == BLUE_SUPPORTER;
 		
-	*right = c_col < MSZ - 1 && maze[c_row][c_col + 1] == SPACE ||
+	*right = c_col < MSZ - 1 &&
+		maze[c_row][c_col + 1] == SPACE ||
 		maze[c_row][c_col + 1] == MED ||
 		maze[c_row][c_col + 1] == AMMO ||
 		maze[c_row][c_col + 1] == RED_SOLDIER ||
@@ -274,7 +274,8 @@ void Player::CheckStepsDirection(int maze[MSZ][MSZ], int c_row, int c_col, bool*
 		maze[c_row][c_col + 1] == BLUE_SOLDIER ||
 		maze[c_row][c_col + 1] == BLUE_SUPPORTER;
 	
-	*left = c_col > 0 && maze[c_row][c_col - 1] == SPACE ||
+	*left = c_col > 0 &&
+		maze[c_row][c_col - 1] == SPACE ||
 		maze[c_row][c_col - 1] == MED ||
 		maze[c_row][c_col - 1] == AMMO ||
 		maze[c_row][c_col - 1] == RED_SOLDIER ||

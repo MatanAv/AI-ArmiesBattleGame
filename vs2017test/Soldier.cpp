@@ -98,8 +98,6 @@ void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier*>& sol
 		if (sd->getId() != this->id && sd->getSoldierType() == AGGRESSIVE)
 			UpdateMinDistCoordinates(row, col, sd->getRow(), sd->getCol(), &trow, &tcol, &minDist);
 
-	priority_queue <Cell, vector<Cell>, CompareCells> followTeam_pq;
-
 	if (roomNum != -1) // if not in a tunnel -> find random cell to reach, which closest to aggressive
 	{
 		priority_queue <Cell, vector<Cell>, CompareCells> followTeam_pq;
@@ -107,10 +105,7 @@ void Soldier::FollowAggressiveTeammate(int maze[MSZ][MSZ], vector<Soldier*>& sol
 		while (followTeam_pq.size() < 3)
 		{
 			int x, y;
-			do {
-				RandomizePointByRadius(maze, &y, &x, 30);
-			} while (maze[y][x] != SPACE);
-
+			RandomizePointByRadius(maze, &y, &x, 20);
 			followTeam_pq.push(*(new Cell(y, x, trow, tcol, 0, nullptr)));
 		}
 
@@ -152,14 +147,14 @@ void Soldier::BattleMode(int maze[MSZ][MSZ], double security_map[MSZ][MSZ], Room
 {
 	priority_queue<double, vector<double>, less<double>> task_q;
 	double hp_per = hp / MAX_HP;
-	double ammo_per = (num_bullets + num_grenades) / (MAX_BULLETS + MAX_GRENADES);
+	double ammo_per = (double)(num_bullets + num_grenades) / (double)(MAX_BULLETS + MAX_GRENADES);
 	double grenade_per = num_grenades / MAX_GRENADES;
 	double dist_per;	// low percent means closer
 	double is_visible;
 	
-	if (hp_per < 0.4)
+	if (hp_per < 0.4 && !needMedkit)
 		CallForMedkit();
-	if (ammo_per < 0.35)
+	if (ammo_per < 0.35 && !needAmmo)
 		CallForAmmo();
 	
 	FindEnemyToFight(&enemy_row, &enemy_col, enemies, visibillity_map, &is_visible);
@@ -228,10 +223,7 @@ void Soldier::GetCloserToEnemy(int maze[MSZ][MSZ], double security_map[MSZ][MSZ]
 	while (getCloser_pq.size() < 5)
 	{
 		int x, y;
-		do {
-			RandomizePointByRadius(maze, &y, &x, 5);
-		} while (maze[y][x] != SPACE);
-
+		RandomizePointByRadius(maze, &y, &x, 20);
 		getCloser_pq.push(*(new Cell(y, x, trow, tcol, 0, nullptr)));
 	}
 
@@ -250,7 +242,7 @@ void Soldier::AttackEnemy(bool isVisible)
 
 Bullet* Soldier::ShootBullet()
 {
-	Bullet* pb = new Bullet(col, row, CalculateDirectedAngle(row, col, enemy_row, enemy_col));
+	Bullet* pb = new Bullet(col, row, CalculateDirectedAngle(row, col, enemy_row, enemy_col), this->team);
 	pb->setIsFired(true);
 	num_bullets--;
 

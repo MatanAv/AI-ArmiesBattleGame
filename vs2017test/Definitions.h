@@ -20,6 +20,7 @@ const int RED_SOLDIER = 10;
 const int RED_SUPPORTER = 11;
 const int BLUE_SOLDIER = 12;
 const int BLUE_SUPPORTER = 13;
+const int DEAD = 14;
 
 // Maze
 const int MSZ = 100;
