@@ -20,7 +20,7 @@ All parameters are normalized to percentages, and on them are applied exp, ln fu
 • ln - For parameters whose urgency is greater when their value is low.  
 • exp - for parameters whose urgency is greater when their value is high.  
 
-Astar - The G function is a combination of distance from the starting point + safe / unsafe cell cost.
+AStar - The G function is a combination of distance from the starting point + safe / unsafe cell cost.
 In this case -> a cell with a security value of 0 is safer, and 1 is unsafe.
 So I used exp function to punish unsafe cells as well as actually prevent the player from going through them.
 
