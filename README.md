@@ -7,7 +7,9 @@ The decisions of the players are made by a decision tree attached to the project
 I would like to elaborate on the state of the fighting:  
 The combat mode is basically beyond a match-making decision tree (i.e., the situation where the player is with an opposing player in the same room).
 During this time there are 5 considerations for making the decision (attack using a grenade or a shot, approaching, escaping from the opponent).    
-The considerations are:    
+  
+The considerations are:  
+  
 •	HP level  
 • Ammunition level  
 • How far is the opponent?  
