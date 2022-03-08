@@ -6,13 +6,13 @@ Each group has 2 soldiers (one aggressive and the other is careful), and a comba
 The decisions of the players are made by a decision tree attached to the project, according to their data at any given moment.  
 I would like to elaborate on the state of the fighting:  
 The combat mode is basically beyond a match-making decision tree (i.e., the situation where the player is with an opposing player in the same room).
-During this time there are 5 considerations for making the decision (attack using a grenade or a shot, approaching, escaping from the opponent).
-The considerations are:
-•	HP level
-• Ammunition level
-• How far is the opponent?
-• Is the opponent on the vision map?
-• How many grenades left?
+During this time there are 5 considerations for making the decision (attack using a grenade or a shot, approaching, escaping from the opponent).    
+The considerations are:    
+•	HP level  
+• Ammunition level  
+• How far is the opponent?  
+• Is the opponent on the vision map?  
+• How many grenades left?  
 
 All parameters are normalized to percentages, and on them are applied exp, ln functions, which helps in defining the urgency of each of the operations in intelligently way.
 ln - For parameters whose urgency is greater when their value is low.
